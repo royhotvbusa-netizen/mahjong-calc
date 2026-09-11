@@ -341,7 +341,6 @@
 </div>
 
 <script>
-    // 已自動帶入你的專屬 Roboflow 金鑰與 Endpoint
     const ROBOFLOW_API_KEY = "zkiChDUIdVpHwIWQPZOM";
     const CLOUD_ENDPOINT = "https://serverless.roboflow.com/roy-ho/workflows/mahjong-tile-scoring";
 
@@ -402,12 +401,15 @@
     async function captureAndDetect() {
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('snapshotCanvas');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
+        
+        canvas.width = 640;
+        canvas.height = 480;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const base64Image = dataUrl.split(',')[1];
+
         document.getElementById('loadingOverlay').style.display = 'flex';
 
         try {
@@ -419,28 +421,46 @@
                 },
                 body: JSON.stringify({
                     inputs: {
-                        "image": { "type": "base64", "value": base64Image },
-                        "confidence": 0.25,
-                        "iou_threshold": 0.3
+                        "image": { "type": "base64", "value": base64Image }
                     }
                 })
             });
 
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`API 錯誤 (${response.status}): ${errText}`);
+            }
+
             const result = await response.json();
+            console.log("Roboflow 回傳資料:", result);
             document.getElementById('loadingOverlay').style.display = 'none';
             parseDetectionsAndAutoSelect(result);
 
         } catch (err) {
             document.getElementById('loadingOverlay').style.display = 'none';
             alert("AI 分析失敗，請重新拍照。");
-            console.error(err);
+            console.error("Roboflow API 錯誤:", err);
         }
     }
 
     function parseDetectionsAndAutoSelect(result) {
         let detectedClasses = [];
-        if (result && result.outputs && result.outputs[0] && result.outputs[0].predictions) {
-            detectedClasses = result.outputs[0].predictions.map(p => (p.class || '').toLowerCase());
+
+        try {
+            if (result && result.outputs && result.outputs[0]) {
+                const outputObj = result.outputs[0];
+                let predictions = [];
+
+                if (Array.isArray(outputObj.predictions)) {
+                    predictions = outputObj.predictions;
+                } else if (outputObj.predictions && Array.isArray(outputObj.predictions.predictions)) {
+                    predictions = outputObj.predictions.predictions;
+                }
+
+                detectedClasses = predictions.map(p => (p.class || p.name || '').toLowerCase());
+            }
+        } catch (e) {
+            console.warn("解析結果時出現異常:", e);
         }
 
         selectedTiles.clear();

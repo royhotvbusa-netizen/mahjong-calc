@@ -125,13 +125,11 @@
   </div>
 
   <script>
-    // Roboflow API 設定 (使用 Hosted Model API 避免 Workflow CORS 阻擋)
     const ROBOFLOW_API_KEY = "zkchDUIdVpHwIWQPZOM";
     const MODEL_ENDPOINT = "https://detect.roboflow.com/mahjong-tile-scoring/3";
 
     let selectedBase64Image = "";
 
-    // 1. 處理圖片上傳與自動壓縮 (避免手機拍攝圖片過大導致 400 錯誤)
     function handleImageUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -176,7 +174,6 @@
       reader.readAsDataURL(file);
     }
 
-    // 2. 呼叫 Roboflow Hosted Model API 進行辨識
     async function analyzeImage() {
       if (!selectedBase64Image) return;
 
@@ -189,12 +186,13 @@
       status.innerText = "AI 正在辨識麻雀牌中，請稍候...";
 
       try {
-        const url = `${MODEL_ENDPOINT}?api_key=${ROBOFLOW_API_KEY}&confidence=30`;
+        const url = `${MODEL_ENDPOINT}?confidence=0.3`;
 
         const response = await fetch(url, {
           method: "POST",
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": `Bearer ${ROBOFLOW_API_KEY}`
           },
           body: selectedBase64Image
         });

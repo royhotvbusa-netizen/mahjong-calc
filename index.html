@@ -1,637 +1,236 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>廣東麻雀食糊宣告平台 - 拍照自動計番</title>
-    <style>
-        :root {
-            --bg-color: #f7f9fa;
-            --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --text-sub: #7f8c8d;
-            --accent-color: #27ae60;
-            --accent-hover: #219653;
-            --border-color: #e2e8f0;
-            --active-bg: #e8f8f0;
-            --disabled-bg: #f1f5f9;
-            --disabled-color: #cbd5e1;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>廣東麻雀食糊牌平台 - 拍照自動計番</title>
+  <style>
+    :root {
+      --bg-color: #f7f9fa;
+      --card-bg: #ffffff;
+      --text-main: #2c3e50;
+      --text-sub: #7f8c8d;
+      --accent-color: #27ae60;
+      --accent-hover: #219653;
+      --border-color: #e2e8f0;
+      --active-bg: #e8f8f0;
+      --disabled-bg: #f1f5f9;
+      --disabled-color: #cbd5e1;
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            display: flex;
-            justify-content: center;
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
 
-        .container {
-            width: 100%;
-            max-width: 480px;
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            box-sizing: border-box;
-            position: relative;
-        }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
 
-        header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-        }
+    h1 {
+      font-size: 1.4rem;
+      text-align: center;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
 
-        .score-board {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
+    .upload-section {
+      border: 2px dashed var(--accent-color);
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px;
+      background: var(--active-bg);
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
 
-        .camera-container {
-            background-color: #000;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    .upload-section input {
+      display: none;
+    }
 
-        video, canvas {
-            width: 100%;
-            max-height: 260px;
-            object-fit: cover;
-        }
+    .btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      font-weight: bold;
+    }
 
-        .camera-actions {
-            position: absolute;
-            bottom: 10px;
-            display: flex;
-            gap: 8px;
-        }
+    .btn:hover {
+      background-color: var(--accent-hover);
+    }
 
-        .cam-btn {
-            background-color: rgba(39, 174, 96, 0.9);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
+    .btn:disabled {
+      background-color: var(--disabled-color);
+      cursor: not-allowed;
+    }
 
-        .cam-btn:active {
-            transform: scale(0.95);
-        }
+    .status-msg {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: var(--text-sub);
+    }
 
-        .game-setup {
-            background-color: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 16px;
-        }
+    .output-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--bg-color);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
 
-        .setup-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .setup-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .setup-label {
-            font-size: 0.88rem;
-            font-weight: bold;
-            color: var(--text-main);
-        }
-
-        .hand-input {
-            width: 70px;
-            padding: 4px 8px;
-            font-size: 0.95rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .seat-selector {
-            display: flex;
-            gap: 6px;
-        }
-
-        .seat-btn {
-            padding: 4px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background-color: #ffffff;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .seat-btn.active {
-            background-color: var(--accent-color);
-            color: white;
-            border-color: var(--accent-color);
-            font-weight: bold;
-        }
-
-        .wind-info {
-            font-size: 0.82rem;
-            color: var(--text-sub);
-            margin-top: 6px;
-            text-align: right;
-        }
-
-        .section-title {
-            font-size: 0.95rem;
-            color: var(--text-sub);
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-            max-height: 240px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        .tile-btn {
-            background-color: #ffffff;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 12px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .tile-btn .name {
-            font-size: 0.9rem;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 1px;
-        }
-
-        .tile-btn .en-name {
-            font-size: 0.72rem;
-            color: var(--text-sub);
-            display: block;
-            margin-bottom: 4px;
-            line-height: 1.2;
-        }
-
-        .tile-btn .fan {
-            font-size: 0.8rem;
-            color: var(--accent-color);
-            font-weight: bold;
-        }
-
-        .tile-btn.active {
-            background-color: var(--active-bg);
-            border-color: var(--accent-color);
-        }
-
-        .tile-btn.active .name {
-            color: var(--accent-color);
-        }
-
-        .tile-btn.disabled {
-            background-color: var(--disabled-bg);
-            border-color: var(--border-color);
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .tile-btn.disabled .name,
-        .tile-btn.disabled .en-name,
-        .tile-btn.disabled .fan {
-            color: var(--disabled-color);
-        }
-
-        .output-box {
-            background-color: #f1f5f9;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .output-box p {
-            margin: 0 0 8px 0;
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
-
-        .output-box p:last-child {
-            margin-bottom: 0;
-            color: var(--text-sub);
-            font-size: 0.85rem;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .action-btn {
-            flex: 1;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .action-btn:hover {
-            background-color: var(--accent-hover);
-        }
-
-        .action-btn.secondary {
-            background-color: #e2e8f0;
-            color: var(--text-main);
-        }
-
-        .action-btn.secondary:hover {
-            background-color: #cbd5e1;
-        }
-
-        #loadingOverlay {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.85);
-            border-radius: 12px;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: var(--accent-color);
-            z-index: 10;
-        }
-    </style>
+    #previewImg {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="loadingOverlay">AI 分析牌面中...</div>
+  <div class="container">
+    <h1>🀄 廣東麻雀拍照自動計番</h1>
 
-    <header>
-        <div class="score-board" id="scoreDisplay">目前總番數：0 番</div>
-    </header>
-
-    <div class="camera-container">
-        <video id="webcam" autoplay playsinline></video>
-        <canvas id="snapshotCanvas" style="display:none;"></canvas>
-        <div class="camera-actions">
-            <button class="cam-btn" onclick="captureAndDetect()">📷 拍照 AI 自動計番</button>
-        </div>
+    <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+      <p>📷 點擊此處拍攝或上傳麻雀相片</p>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
     </div>
 
-    <div class="game-setup">
-        <div class="setup-row">
-            <span class="setup-label">目前盤數（不設冧莊）：</span>
-            <div>
-                第 <input type="number" id="handNumber" class="hand-input" value="1" min="1" max="16" onchange="updateGameContext()"> 盤
-            </div>
-        </div>
-        <div class="setup-row">
-            <span class="setup-label">食糊者門風（座位）：</span>
-            <div class="seat-selector">
-                <button class="seat-btn active" onclick="setSeatWind('東')">東</button>
-                <button class="seat-btn" onclick="setSeatWind('南')">南</button>
-                <button class="seat-btn" onclick="setSeatWind('西')">西</button>
-                <button class="seat-btn" onclick="setSeatWind('北')">北</button>
-            </div>
-        </div>
-        <div class="wind-info" id="windContextDisplay">圈風：東風圈 | 門風：東風</div>
-    </div>
+    <img id="previewImg" alt="麻雀牌預覽">
 
-    <div class="section-title">選擇食糊牌型</div>
-    <div class="grid" id="tileGrid"></div>
+    <button id="analyzeBtn" class="btn" onclick="analyzeImage()" disabled>開始 AI 分析</button>
+    <div id="status" class="status-msg">請先上傳相片</div>
 
     <div class="output-box">
-        <p id="cantoneseOutput"><strong>中文：</strong>請選擇糊型或拍照辨識</p>
-        <p id="englishOutput"><strong>English:</strong> Please select tiles or take a photo</p>
+      <p id="cantoneseOutput"><strong>分析結果：</strong>等待相片上傳...</p>
+      <p id="englishOutput"><strong>Status:</strong> Awaiting image upload...</p>
     </div>
+  </div>
 
-    <div class="actions">
-        <button class="action-btn secondary" onclick="resetSelection()">重設</button>
-        <button class="action-btn" onclick="speakAnnouncement()">語音朗讀</button>
-    </div>
-</div>
-
-<script>
-    const ROBOFLOW_API_KEY = "zkiChDUIdVpHwIWQPZOM";
+  <script>
+    // Roboflow API 設定
+    const ROBOFLOW_API_KEY = "zkchDUIdVpHwIWQPZOM";
     const CLOUD_ENDPOINT = "https://serverless.roboflow.com/roy-ho/workflows/mahjong-tile-scoring";
 
-    const winds = ['東', '南', '西', '北'];
-    const windsEn = { '東': 'East', '南': 'South', '西': 'West', '北': 'North' };
-    
-    let currentHand = 1;
-    let prevailingWind = '東';
-    let seatWind = '東';
+    let selectedBase64Image = "";
 
-    const tileData = [
-        { id: 'pingwu', name: '平糊', enName: 'Common Hand', fan: 1, conflicts: ['ziyise', 'shisanyao', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan', 'duiduihu', 'quanfengke', 'menfengke', 'gangshangzimo', 'dragon1', 'dragon2'] },
-        { id: 'zimo', name: '自摸', enName: 'Self-Draw', fan: 1 },
-        { id: 'quanfengke', name: '圈風刻', enName: 'Prevailing Wind Triplet', fan: 1, conflicts: ['qingyise', 'dasixi', 'xiaosixi', 'shisanyao', 'ziyise', 'pingwu'] },
-        { id: 'menfengke', name: '門風刻', enName: 'Seat Wind Triplet', fan: 1, conflicts: ['qingyise', 'dasixi', 'xiaosixi', 'shisanyao', 'ziyise', 'pingwu'] },
-        { id: 'hailidlaoyue', name: '海底撈月', enName: 'Under the Sea', fan: 1 },
-        { id: 'gangshangzimo', name: '槓上自摸', enName: 'Self-Draw on Kong', fan: 1, conflicts: ['shisanyao', 'pingwu'] },
-        { id: 'dragon1', name: '中發白其中一刻', enName: 'A Triplet of Dragon Tiles', fan: 1, conflicts: ['qingyise', 'dasanyuan', 'dasixi', 'shisanyao', 'ziyise', 'pingwu'], triggers: ['xiaosanyuan'] },
-        { id: 'dragon2', name: '中發白其中第二刻', enName: 'Second Triplet of Dragon Tiles', fan: 1, conflicts: ['qingyise', 'dasanyuan', 'dasixi', 'xiaosanyuan', 'xiaosixi', 'shisanyao', 'ziyise', 'pingwu'], triggers: ['xiaosanyuan'] },
-        { id: 'duiduihu', name: '對對糊', enName: 'All Triplets', fan: 3, conflicts: ['ziyise', 'shisanyao', 'pingwu'] },
-        { id: 'hunyise', name: '混一色', enName: 'Half Flush', fan: 3, conflicts: ['ziyise', 'shisanyao', 'qingyise'] },
-        { id: 'xiaosanyuan', name: '小三元', enName: 'Little Three Dragons', fan: 4, conflicts: ['qingyise', 'shisanyao', 'dasixi', 'dasanyuan', 'xiaosixi', 'pingwu'], triggers: ['dragon1', 'dragon2'] },
-        { id: 'xiaosixi', name: '小四喜', enName: 'Little Four Winds', fan: 5, conflicts: ['qingyise', 'pingwu', 'dasanyuan', 'shisanyao', 'xiaosanyuan', 'dasixi'], triggers: ['quanfengke', 'menfengke', 'dragon2'] },
-        { id: 'qingyise', name: '清一色', enName: 'Full Flush', fan: 7, conflicts: ['dasanyuan', 'dasixi', 'xiaosanyuan', 'xiaosixi', 'shisanyao', 'ziyise', 'hunyise'], triggers: ['quanfengke', 'menfengke', 'dragon1', 'dragon2'] },
-        { id: 'dasanyuan', name: '大三元', enName: 'Big Three Dragons', fan: 8, conflicts: ['qingyise', 'shisanyao', 'dasixi', 'xiaosanyuan', 'xiaosixi', 'pingwu'], triggers: ['dragon1', 'dragon2'] },
-        { id: 'dasixi', name: '大四喜', enName: 'Big Four Winds', fan: 10, conflicts: ['qingyise', 'pingwu', 'dasanyuan', 'shisanyao', 'xiaosanyuan', 'xiaosixi'], triggers: ['quanfengke', 'menfengke', 'dragon1', 'dragon2', 'duiduihu'] },
-        { id: 'shisanyao', name: '十三么', enName: 'Thirteen Orphans', fan: 10, conflicts: ['ziyise', 'qingyise', 'pingwu', 'hunyise', 'duiduihu', 'dasanyuan', 'dasixi', 'xiaosanyuan', 'xiaosixi', 'gangshangzimo'], triggers: ['quanfengke', 'menfengke', 'dragon1', 'dragon2'] },
-        { id: 'ziyise', name: '字一色', enName: 'All Honors', fan: 10, conflicts: ['pingwu', 'hunyise', 'duiduihu', 'qingyise', 'shisanyao'], triggers: ['quanfengke', 'menfengke', 'dragon1', 'dragon2'] }
-    ];
+    // 1. 處理圖片上傳與自動壓縮 (避免手機拍攝圖片過大導致 400 Bad Request)
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-    (function normalizeConflicts() {
-        tileData.forEach(tile => {
-            if (!tile.conflicts) return;
-            tile.conflicts.forEach(cId => {
-                const other = tileData.find(t => t.id === cId);
-                if (!other) return;
-                if (!other.conflicts) other.conflicts = [];
-                if (!other.conflicts.includes(tile.id)) {
-                    other.conflicts.push(tile.id);
-                }
-            });
-        });
-    })();
+      const status = document.getElementById("status");
+      status.innerText = "正在處理相片...";
 
-    let selectedTiles = new Set();
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          // Canvas 壓縮邏輯 (最大長寬限制 1024px)
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1024;
 
-    async function startCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
-            });
-            document.getElementById('webcam').srcObject = stream;
-        } catch (err) {
-            console.error("無法調用鏡頭:", err);
-        }
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 取得壓縮後的 Base64 (JPEG 75% 品質)
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          selectedBase64Image = compressedDataUrl.split(',')[1];
+
+          // 顯示預覽圖
+          const preview = document.getElementById("previewImg");
+          preview.src = compressedDataUrl;
+          preview.style.display = "block";
+
+          document.getElementById("analyzeBtn").disabled = false;
+          status.innerText = "相片準備就緒，請點擊「開始 AI 分析」";
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
-    async function captureAndDetect() {
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('snapshotCanvas');
+    // 2. 呼叫 Roboflow Workflows API 進行辨識
+    async function analyzeImage() {
+      if (!selectedBase64Image) return;
+
+      const status = document.getElementById("status");
+      const btn = document.getElementById("analyzeBtn");
+      const cantoneseOutput = document.getElementById("cantoneseOutput");
+      const englishOutput = document.getElementById("englishOutput");
+
+      btn.disabled = true;
+      status.innerText = "AI 正在辨識麻雀牌中，請稍候...";
+
+      try {
+        const response = await fetch(CLOUD_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            api_key: ROBOFLOW_API_KEY,
+            inputs: {
+              "image": {
+                "type": "base64",
+                "value": selectedBase64Image
+              }
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤狀態碼: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Roboflow Workflow API 回傳結果：", result);
+
+        // 解析回傳成果 (依據 Workflow 輸出結構調整)
+        const outputs = result.outputs || result.results || [];
         
-        canvas.width = 640;
-        canvas.height = 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        status.innerText = "分析完成！";
+        cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> 成功分析牌面！`;
+        englishOutput.innerHTML = `<strong>Status:</strong> Analysis complete! Check DevTools console for raw detection details.`;
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        const base64Image = dataUrl.split(',')[1];
-
-        document.getElementById('loadingOverlay').style.display = 'flex';
-
-        try {
-            const response = await fetch(CLOUD_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${ROBOFLOW_API_KEY}`
-                },
-                body: JSON.stringify({
-                    inputs: {
-                        "image": { "type": "base64", "value": base64Image }
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`API 錯誤 (${response.status}): ${errText}`);
-            }
-
-            const result = await response.json();
-            console.log("Roboflow 回傳資料:", result);
-            document.getElementById('loadingOverlay').style.display = 'none';
-            parseDetectionsAndAutoSelect(result);
-
-        } catch (err) {
-            document.getElementById('loadingOverlay').style.display = 'none';
-            alert("AI 分析失敗，請重新拍照。");
-            console.error("Roboflow API 錯誤:", err);
-        }
+      } catch (error) {
+        console.error("AI 分析失敗詳情：", error);
+        status.innerText = "❌ AI 分析失敗，請檢查 Console 控制台紀錄。";
+        cantoneseOutput.innerHTML = `<strong>錯誤訊息：</strong> ${error.message}`;
+        englishOutput.innerHTML = `<strong>Error:</strong> Failed to call Roboflow API.`;
+      } finally {
+        btn.disabled = false;
+      }
     }
-
-    function parseDetectionsAndAutoSelect(result) {
-        let detectedClasses = [];
-
-        try {
-            if (result && result.outputs && result.outputs[0]) {
-                const outputObj = result.outputs[0];
-                let predictions = [];
-
-                if (Array.isArray(outputObj.predictions)) {
-                    predictions = outputObj.predictions;
-                } else if (outputObj.predictions && Array.isArray(outputObj.predictions.predictions)) {
-                    predictions = outputObj.predictions.predictions;
-                }
-
-                detectedClasses = predictions.map(p => (p.class || p.name || '').toLowerCase());
-            }
-        } catch (e) {
-            console.warn("解析結果時出現異常:", e);
-        }
-
-        selectedTiles.clear();
-
-        const redCount = detectedClasses.filter(c => c.includes('red') || c.includes('zhong') || c.includes('中')).length;
-        const greenCount = detectedClasses.filter(c => c.includes('green') || c.includes('fa') || c.includes('發')).length;
-        const whiteCount = detectedClasses.filter(c => c.includes('white') || c.includes('bai') || c.includes('白')).length;
-
-        if (redCount >= 3 && greenCount >= 3 && whiteCount >= 3) {
-            selectedTiles.add('dasanyuan');
-        } else if ((redCount >= 3 && greenCount >= 3 && whiteCount >= 2) ||
-                   (redCount >= 3 && greenCount >= 2 && whiteCount >= 3) ||
-                   (redCount >= 2 && greenCount >= 3 && whiteCount >= 3)) {
-            selectedTiles.add('xiaosanyuan');
-        }
-
-        initGrid();
-    }
-
-    function updateGameContext() {
-        const inputVal = parseInt(document.getElementById('handNumber').value) || 1;
-        currentHand = Math.max(1, inputVal);
-        document.getElementById('handNumber').value = currentHand;
-
-        const windIndex = Math.floor((currentHand - 1) / 4) % 4;
-        prevailingWind = winds[windIndex];
-
-        document.getElementById('windContextDisplay').innerText = 
-            `圈風：${prevailingWind}風圈 | 門風：${seatWind}風`;
-
-        const qfTile = tileData.find(t => t.id === 'quanfengke');
-        if (qfTile) {
-            qfTile.name = `圈風刻 (${prevailingWind}風)`;
-            qfTile.enName = `Prevailing Wind (${windsEn[prevailingWind]})`;
-        }
-
-        const mfTile = tileData.find(t => t.id === 'menfengke');
-        if (mfTile) {
-            mfTile.name = `門風刻 (${seatWind}風)`;
-            mfTile.enName = `Seat Wind (${windsEn[seatWind]})`;
-        }
-
-        initGrid();
-    }
-
-    function setSeatWind(wind) {
-        seatWind = wind;
-        const btns = document.querySelectorAll('.seat-btn');
-        btns.forEach(btn => {
-            if (btn.innerText === wind) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-        updateGameContext();
-    }
-
-    function initGrid() {
-        const grid = document.getElementById('tileGrid');
-        grid.innerHTML = '';
-
-        let disabledIds = new Set();
-        selectedTiles.forEach(id => {
-            const tile = tileData.find(t => t.id === id);
-            if (tile) {
-                if (tile.triggers) {
-                    tile.triggers.forEach(tId => disabledIds.add(tId));
-                }
-                if (tile.conflicts) {
-                    tile.conflicts.forEach(cId => disabledIds.add(cId));
-                }
-            }
-        });
-
-        tileData.forEach(tile => {
-            const isActive = selectedTiles.has(tile.id);
-            const isDisabled = !isActive && disabledIds.has(tile.id);
-
-            const btn = document.createElement('div');
-            btn.className = `tile-btn ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
-            btn.innerHTML = `
-                <span class="name">${tile.name}</span>
-                <span class="en-name">${tile.enName}</span>
-                <span class="fan">${tile.fan} 番</span>
-            `;
-
-            if (!isDisabled) {
-                btn.onclick = () => toggleTile(tile.id);
-            }
-
-            grid.appendChild(btn);
-        });
-        updateOutput();
-    }
-
-    function toggleTile(id) {
-        if (selectedTiles.has(id)) {
-            selectedTiles.delete(id);
-        } else {
-            const tile = tileData.find(t => t.id === id);
-            let hasConflict = false;
-            if (tile && tile.conflicts) {
-                for (let cId of tile.conflicts) {
-                    if (selectedTiles.has(cId)) {
-                        hasConflict = true;
-                        break;
-                    }
-                }
-            }
-            if (!hasConflict) {
-                selectedTiles.add(id);
-            }
-        }
-        initGrid();
-    }
-
-    function updateOutput() {
-        let totalFan = 0;
-        let cnItems = [];
-        let enItems = [];
-
-        selectedTiles.forEach(id => {
-            const tile = tileData.find(t => t.id === id);
-            if (tile) {
-                totalFan += tile.fan;
-                cnItems.push(`${tile.name}${tile.fan}番`);
-                enItems.push(`${tile.enName} (${tile.fan} ${tile.fan > 1 ? 'fans' : 'fan'})`);
-            }
-        });
-
-        document.getElementById('scoreDisplay').innerText = `目前總番數：${totalFan} 番`;
-
-        const cantoneseOutput = document.getElementById('cantoneseOutput');
-        const englishOutput = document.getElementById('englishOutput');
-
-        if (selectedTiles.size === 0) {
-            cantoneseOutput.innerHTML = `<strong>中文：</strong>請選擇糊型或拍照辨識`;
-            englishOutput.innerHTML = `<strong>English:</strong> Please select tiles or take a photo`;
-        } else {
-            cantoneseOutput.innerHTML = `<strong>中文：</strong>${cnItems.join('，')}，總共${totalFan}番。`;
-            englishOutput.innerHTML = `<strong>English:</strong> ${enItems.join(', ')}, totaling ${totalFan} fans.`;
-        }
-    }
-
-    function resetSelection() {
-        selectedTiles.clear();
-        initGrid();
-    }
-
-    function speakAnnouncement() {
-        if (selectedTiles.size === 0) return;
-        if (!('speechSynthesis' in window)) return;
-
-        window.speechSynthesis.cancel();
-
-        const cnText = document.getElementById('cantoneseOutput').innerText.replace('中文：', '');
-        const cnUtterance = new SpeechSynthesisUtterance(cnText);
-        cnUtterance.lang = 'zh-HK';
-
-        const enText = document.getElementById('englishOutput').innerText.replace('English:', '');
-        const enUtterance = new SpeechSynthesisUtterance(enText);
-        enUtterance.lang = 'en-US';
-
-        window.speechSynthesis.speak(cnUtterance);
-        window.speechSynthesis.speak(enUtterance);
-    }
-
-    updateGameContext();
-    startCamera();
-</script>
-
+  </script>
 </body>
 </html>

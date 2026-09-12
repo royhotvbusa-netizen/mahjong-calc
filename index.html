@@ -1,108 +1,233 @@
-<script>
-  // Roboflow API 設定 (使用 Hosted Model API，避開 Workflow CORS 限制)
-  const ROBOFLOW_API_KEY = "zkchDUIdVpHwIWQPZOM";
-  // 直接指向 v3 模型端點
-  const MODEL_ENDPOINT = "https://detect.roboflow.com/mahjong-tile-scoring/3";
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>廣東麻雀食糊牌平台 - 拍照自動計番</title>
+  <style>
+    :root {
+      --bg-color: #f7f9fa;
+      --card-bg: #ffffff;
+      --text-main: #2c3e50;
+      --text-sub: #7f8c8d;
+      --accent-color: #27ae60;
+      --accent-hover: #219653;
+      --border-color: #e2e8f0;
+      --active-bg: #e8f8f0;
+      --disabled-bg: #f1f5f9;
+      --disabled-color: #cbd5e1;
+    }
 
-  let selectedBase64Image = "";
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
 
-  // 1. 處理圖片上傳與壓縮 (避免手機大圖超時)
-  function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
 
-    const status = document.getElementById("status");
-    status.innerText = "正在處理相片...";
+    h1 {
+      font-size: 1.4rem;
+      text-align: center;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const img = new Image();
-      img.onload = function () {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        const maxDim = 1024;
+    .upload-section {
+      border: 2px dashed var(--accent-color);
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px;
+      background: var(--active-bg);
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
 
-        if (width > height && width > maxDim) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else if (height > maxDim) {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
+    .upload-section input {
+      display: none;
+    }
+
+    .btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      font-weight: bold;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn:disabled {
+      background-color: var(--disabled-color);
+      cursor: not-allowed;
+    }
+
+    .status-msg {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: var(--text-sub);
+    }
+
+    .output-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--bg-color);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    #previewImg {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🀄 廣東麻雀拍照自動計番</h1>
+
+    <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+      <p>📷 點擊此處拍攝或上傳麻雀相片</p>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
+    </div>
+
+    <img id="previewImg" alt="麻雀牌預覽">
+
+    <button id="analyzeBtn" class="btn" onclick="analyzeImage()" disabled>開始 AI 分析</button>
+    <div id="status" class="status-msg">請先上傳相片</div>
+
+    <div class="output-box">
+      <p id="cantoneseOutput"><strong>分析結果：</strong>等待相片上傳...</p>
+      <p id="englishOutput"><strong>Status:</strong> Awaiting image upload...</p>
+    </div>
+  </div>
+
+  <script>
+    // Roboflow API 設定 (使用 Hosted Model API 避免 Workflow CORS 阻擋)
+    const ROBOFLOW_API_KEY = "zkchDUIdVpHwIWQPZOM";
+    const MODEL_ENDPOINT = "https://detect.roboflow.com/mahjong-tile-scoring/3";
+
+    let selectedBase64Image = "";
+
+    // 1. 處理圖片上傳與自動壓縮 (避免手機拍攝圖片過大導致 400 錯誤)
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const status = document.getElementById("status");
+      status.innerText = "正在處理相片...";
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1024;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          selectedBase64Image = compressedDataUrl.split(',')[1];
+
+          const preview = document.getElementById("previewImg");
+          preview.src = compressedDataUrl;
+          preview.style.display = "block";
+
+          document.getElementById("analyzeBtn").disabled = false;
+          status.innerText = "相片準備就緒，請點擊「開始 AI 分析」";
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 2. 呼叫 Roboflow Hosted Model API 進行辨識
+    async function analyzeImage() {
+      if (!selectedBase64Image) return;
+
+      const status = document.getElementById("status");
+      const btn = document.getElementById("analyzeBtn");
+      const cantoneseOutput = document.getElementById("cantoneseOutput");
+      const englishOutput = document.getElementById("englishOutput");
+
+      btn.disabled = true;
+      status.innerText = "AI 正在辨識麻雀牌中，請稍候...";
+
+      try {
+        const url = `${MODEL_ENDPOINT}?api_key=${ROBOFLOW_API_KEY}&confidence=30`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: selectedBase64Image
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤狀態碼: ${response.status}`);
         }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
+        const result = await response.json();
+        console.log("Roboflow 辨識結果：", result);
 
-        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
-        selectedBase64Image = compressedDataUrl.split(',')[1];
+        const predictions = result.predictions || [];
+        
+        status.innerText = `分析完成！共辨識出 ${predictions.length} 張牌`;
+        
+        if (predictions.length > 0) {
+          const detectedTiles = predictions.map(p => p.class).join(', ');
+          cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> ${detectedTiles}`;
+          englishOutput.innerHTML = `<strong>Detected Tiles:</strong> ${detectedTiles}`;
+        } else {
+          cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> 未能清晰辨識麻雀牌，請嘗試近距離拍攝。`;
+          englishOutput.innerHTML = `<strong>Result:</strong> No tiles detected clearly.`;
+        }
 
-        const preview = document.getElementById("previewImg");
-        preview.src = compressedDataUrl;
-        preview.style.display = "block";
-
-        document.getElementById("analyzeBtn").disabled = false;
-        status.innerText = "相片準備就緒，請點擊「開始 AI 分析」";
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // 2. 呼叫 Roboflow Hosted Model API
-  async function analyzeImage() {
-    if (!selectedBase64Image) return;
-
-    const status = document.getElementById("status");
-    const btn = document.getElementById("analyzeBtn");
-    const cantoneseOutput = document.getElementById("cantoneseOutput");
-    const englishOutput = document.getElementById("englishOutput");
-
-    btn.disabled = true;
-    status.innerText = "AI 正在辨識麻雀牌中，請稍候...";
-
-    try {
-      // 使用 Roboflow 標準 Object Detection API
-      const url = `${MODEL_ENDPOINT}?api_key=${ROBOFLOW_API_KEY}&confidence=30`;
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: selectedBase64Image
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP 錯誤狀態碼: ${response.status}`);
+      } catch (error) {
+        console.error("AI 分析失敗詳情：", error);
+        status.innerText = "❌ AI 分析失敗，請檢查 Console 控制台紀錄。";
+        cantoneseOutput.innerHTML = `<strong>錯誤訊息：</strong> ${error.message}`;
+        englishOutput.innerHTML = `<strong>Error:</strong> Failed to call Roboflow API.`;
+      } finally {
+        btn.disabled = false;
       }
-
-      const result = await response.json();
-      console.log("Roboflow 辨識結果：", result);
-
-      const predictions = result.predictions || [];
-      
-      status.innerText = `分析完成！共辨識出 ${predictions.length} 張牌`;
-      
-      // 整理辨識出的牌名
-      if (predictions.length > 0) {
-        const detectedTiles = predictions.map(p => p.class).join(', ');
-        cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> ${detectedTiles}`;
-        englishOutput.innerHTML = `<strong>Detected Tiles:</strong> ${detectedTiles}`;
-      } else {
-        cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> 未能清晰辨識麻雀牌，請嘗試近距離拍攝。`;
-        englishOutput.innerHTML = `<strong>Result:</strong> No tiles detected clearly.`;
-      }
-
-    } catch (error) {
-      console.error("AI 分析失敗詳情：", error);
-      status.innerText = "❌ AI 分析失敗，請檢查 Console 控制台紀錄。";
-      cantoneseOutput.innerHTML = `<strong>錯誤訊息：</strong> ${error.message}`;
-      englishOutput.innerHTML = `<strong>Error:</strong> Failed to call Roboflow API.`;
-    } finally {
-      btn.disabled = false;
     }
-  }
-</script>
+  </script>
+</body>
+</html>

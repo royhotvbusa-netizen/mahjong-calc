@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>廣東麻雀食糊牌平台 - 拍照自動計番</title>
+  <script src="https://cdn.roboflow.com/0.2.26/roboflow.js"></script>
   <style>
     :root {
       --bg-color: #f7f9fa;
@@ -126,7 +127,8 @@
 
   <script>
     const ROBOFLOW_API_KEY = "zkchDUIdVpHwIWQPZOM";
-    const MODEL_ENDPOINT = "https://detect.roboflow.com/mahjong-tile-scoring/3";
+    const MODEL_ID = "mahjong-tile-scoring";
+    const MODEL_VERSION = 3;
 
     let selectedBase64Image = "";
 
@@ -186,23 +188,22 @@
       status.innerText = "AI 正在辨識麻雀牌中，請稍候...";
 
       try {
-        const url = `${MODEL_ENDPOINT}?confidence=0.3`;
+        const url = `https://detect.roboflow.com/${MODEL_ID}/${MODEL_VERSION}?api_key=${ROBOFLOW_API_KEY}&confidence=30`;
 
         const response = await fetch(url, {
           method: "POST",
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Authorization": `Bearer ${ROBOFLOW_API_KEY}`
+            "Content-Type": "application/x-www-form-urlencoded"
           },
           body: selectedBase64Image
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP 錯誤狀態碼: ${response.status}`);
+          throw new Error(`HTTP Status Code: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log("Roboflow 辨識結果：", result);
+        console.log("Roboflow Result:", result);
 
         const predictions = result.predictions || [];
         
@@ -218,7 +219,7 @@
         }
 
       } catch (error) {
-        console.error("AI 分析失敗詳情：", error);
+        console.error("Analysis Error:", error);
         status.innerText = "❌ AI 分析失敗，請檢查 Console 控制台紀錄。";
         cantoneseOutput.innerHTML = `<strong>錯誤訊息：</strong> ${error.message}`;
         englishOutput.innerHTML = `<strong>Error:</strong> Failed to call Roboflow API.`;

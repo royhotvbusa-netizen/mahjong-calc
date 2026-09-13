@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>廣東麻雀食糊牌平台 - 拍照自動計番</title>
-  <!-- Roboflow Official Web SDK -->
+  <!-- 引入 Roboflow 官方 Web SDK -->
   <script src="https://cdn.roboflow.com/0.2.26/roboflow.js"></script>
   <style>
     :root {
@@ -118,7 +118,7 @@
     <img id="previewImg" alt="麻雀牌預覽">
 
     <button id="analyzeBtn" class="btn" onclick="analyzeImage()" disabled>開始 AI 分析</button>
-    <div id="status" class="status-msg">正在加載 AI 模型，請稍候...</div>
+    <div id="status" class="status-msg">請先上傳相片</div>
 
     <div class="output-box">
       <p id="cantoneseOutput"><strong>分析結果：</strong>等待相片上傳...</p>
@@ -128,14 +128,15 @@
 
   <script>
     const ROBOFLOW_PUBLISHABLE_KEY = "rf_jHhGOkaKDgVyqG5VhOryNtzXqIo1";
+    const ROBOFLOW_PRIVATE_KEY = "zkchDUIdVpHwIWQPZOM";
     const MODEL_ID = "mahjong-tile-scoring";
     const MODEL_VERSION = 3;
 
     let roboflowModel = null;
+    let compressedBase64 = "";
 
-    // Load model upon window launch
+    // 1. 頁面加載時先嘗試合法加載 SDK
     window.onload = function() {
-      const status = document.getElementById("status");
       if (window.roboflow) {
         roboflow.auth({
           publishable_key: ROBOFLOW_PUBLISHABLE_KEY
@@ -144,15 +145,14 @@
           version: MODEL_VERSION
         }).then(function(model) {
           roboflowModel = model;
-          console.log("Roboflow Model Loaded Successfully!");
-          status.innerText = "請先上傳相片";
+          console.log("Roboflow SDK 載入成功");
         }).catch(function(err) {
-          console.error("Roboflow Load Error:", err);
-          status.innerText = "⚠️ AI 模型初始化失敗，請查看控制台。";
+          console.warn("Roboflow SDK 加載失敗，切換至 Direct API 備用模式：", err);
         });
       }
     };
 
+    // 2. 處理圖片上傳與自動 Canvas 壓縮 (1024px, 0.75 品質)
     function handleImageUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -162,16 +162,42 @@
 
       const reader = new FileReader();
       reader.onload = function (e) {
-        const preview = document.getElementById("previewImg");
-        preview.src = e.target.result;
-        preview.style.display = "block";
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1024;
 
-        document.getElementById("analyzeBtn").disabled = false;
-        status.innerText = "相片準備就緒，請點擊「開始 AI 分析」";
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          compressedBase64 = compressedDataUrl.split(',')[1];
+
+          const preview = document.getElementById("previewImg");
+          preview.src = compressedDataUrl;
+          preview.style.display = "block";
+
+          document.getElementById("analyzeBtn").disabled = false;
+          status.innerText = "相片準備就緒，請點擊「開始 AI 分析」";
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
+    // 3. 執行 AI 推論 (SDK 與 Direct Fetch 雙軌容錯)
     async function analyzeImage() {
       const imgElement = document.getElementById("previewImg");
       const status = document.getElementById("status");
@@ -187,25 +213,37 @@
       try {
         let predictions = [];
 
+        // 優先路徑：使用 SDK 辨識
         if (roboflowModel) {
-          predictions = await roboflowModel.detect(imgElement);
-        } else {
-          // Direct API fallback using the publishable key
-          const url = `https://detect.roboflow.com/${MODEL_ID}/${MODEL_VERSION}?api_key=${ROBOFLOW_PUBLISHABLE_KEY}&confidence=30`;
-          const base64Data = imgElement.src.split(',')[1];
+          try {
+            predictions = await roboflowModel.detect(imgElement);
+          } catch (sdkErr) {
+            console.warn("SDK 推論失敗，改用 Direct Fetch：", sdkErr);
+            roboflowModel = null; // 標記降級
+          }
+        }
+
+        // 備用路徑：使用 HTTP POST 直接呼叫 Hosted API
+        if (!roboflowModel || predictions.length === 0) {
+          const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${MODEL_VERSION}?api_key=${ROBOFLOW_PRIVATE_KEY}&confidence=30`;
           
-          const response = await fetch(url, {
+          const response = await fetch(apiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: base64Data
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: compressedBase64
           });
 
-          if (!response.ok) throw new Error(`HTTP Error Code: ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`API 錯誤碼: ${response.status}`);
+          }
+
           const resJson = await response.json();
           predictions = resJson.predictions || [];
         }
 
-        console.log("Detections:", predictions);
+        console.log("辨識結果：", predictions);
         status.innerText = `分析完成！共辨識出 ${predictions.length} 張牌`;
 
         if (predictions.length > 0) {
@@ -221,7 +259,7 @@
         console.error("Inference Error:", error);
         status.innerText = "❌ AI 分析失敗，請檢查 Console 控制台紀錄。";
         cantoneseOutput.innerHTML = `<strong>錯誤訊息：</strong> ${error.message}`;
-        englishOutput.innerHTML = `<strong>Error:</strong> Failed to execute inference.`;
+        englishOutput.innerHTML = `<strong>Error:</strong> ${error.message}`;
       } finally {
         btn.disabled = false;
       }

@@ -115,7 +115,7 @@
       <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
     </div>
 
-    <img id="previewImg" alt="麻雀牌預覽">
+    <img id="previewImg" alt="手牌長條區域預覽">
 
     <button id="analyzeBtn" class="btn" onclick="analyzeImage()" disabled>開始 AI 分析</button>
     <div id="status" class="status-msg">請先上傳相片</div>
@@ -135,7 +135,7 @@
     let roboflowModel = null;
     let compressedBase64 = "";
 
-    // 1. 頁面加載時先嘗試合法加載 SDK
+    // 1. 頁面加載時先嘗試加載 SDK
     window.onload = function() {
       if (window.roboflow) {
         roboflow.auth({
@@ -152,45 +152,58 @@
       }
     };
 
-    // 2. 處理圖片上傳與自動 Canvas 壓縮 (1024px, 0.75 品質)
+    // 2. 處理圖片上傳：自動裁切「底部 35%」手牌長條範圍
     function handleImageUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const status = document.getElementById("status");
-      status.innerText = "正在處理相片...";
+      status.innerText = "正在裁切手牌區域...";
 
       const reader = new FileReader();
       reader.onload = function (e) {
         const img = new Image();
         img.onload = function () {
           const canvas = document.createElement("canvas");
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 1024;
 
-          if (width > height && width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
+          // 定義只裁切圖片底部 35% 的區域 (覆蓋玩家面前手牌)
+          const cropX = 0;
+          const cropY = Math.round(img.height * 0.65); // 從高度 65% 處開始切
+          const cropWidth = img.width;
+          const cropHeight = Math.round(img.height * 0.35); // 保留底部 35% 高度
+
+          // 限制最大寬度為 1024px，避免圖片過大
+          const maxDim = 1024;
+          let targetWidth = cropWidth;
+          let targetHeight = cropHeight;
+
+          if (targetWidth > maxDim) {
+            targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
+            targetWidth = maxDim;
           }
 
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
           const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
 
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          // 將原圖的手牌區域繪製到 Canvas 上
+          ctx.drawImage(
+            img,
+            cropX, cropY, cropWidth, cropHeight, // 原圖裁切範圍
+            0, 0, targetWidth, targetHeight       // Canvas 繪製範圍
+          );
+
+          // 轉換為 Base64 格式 (JPEG 85% 品質)
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
           compressedBase64 = compressedDataUrl.split(',')[1];
 
+          // 顯示裁切後的長條預覽圖
           const preview = document.getElementById("previewImg");
           preview.src = compressedDataUrl;
           preview.style.display = "block";
 
           document.getElementById("analyzeBtn").disabled = false;
-          status.innerText = "相片準備就緒，請點擊「開始 AI 分析」";
+          status.innerText = "長條手牌區域已裁切完成，請點擊「開始 AI 分析」";
         };
         img.src = e.target.result;
       };
@@ -208,7 +221,7 @@
       if (!imgElement.src) return;
 
       btn.disabled = true;
-      status.innerText = "AI 正在辨識麻雀牌中，請稍候...";
+      status.innerText = "AI 正在辨識手牌中，請稍候...";
 
       try {
         let predictions = [];
@@ -218,15 +231,15 @@
           try {
             predictions = await roboflowModel.detect(imgElement);
           } catch (sdkErr) {
-            console.warn("SDK 推論失敗，改用 Direct Fetch：", sdkErr);
-            roboflowModel = null; // 標記降級
+            console.warn("SDK 推論失敗，切換至 Direct Fetch：", sdkErr);
+            roboflowModel = null;
           }
         }
 
-        // 備用路徑：使用 HTTP POST 直接呼叫 Hosted API
+        // 備用路徑：使用 HTTP POST 直接呼叫 API
         if (!roboflowModel || predictions.length === 0) {
           const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${MODEL_VERSION}?api_key=${ROBOFLOW_PRIVATE_KEY}&confidence=30`;
-          
+
           const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -244,14 +257,14 @@
         }
 
         console.log("辨識結果：", predictions);
-        status.innerText = `分析完成！共辨識出 ${predictions.length} 張牌`;
+        status.innerText = `分析完成！共辨識出 ${predictions.length} 張手牌`;
 
         if (predictions.length > 0) {
           const detectedTiles = predictions.map(p => p.class).join(', ');
           cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> ${detectedTiles}`;
           englishOutput.innerHTML = `<strong>Detected Tiles:</strong> ${detectedTiles}`;
         } else {
-          cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> 未能清晰辨識麻雀牌，請嘗試近距離拍攝。`;
+          cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> 未能清晰辨識麻雀牌，請試試貼近手牌拍攝。`;
           englishOutput.innerHTML = `<strong>Result:</strong> No tiles detected clearly.`;
         }
 

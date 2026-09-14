@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>香港麻雀 - 計番</title>
-    <!-- 務必保留這一行來載入 Roboflow SDK -->
+    <!-- 引入 Roboflow 官方 SDK -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/roboflow/0.2.26/roboflow.min.js"></script>
     <style>
         :root {
@@ -202,7 +202,7 @@
     </div>
 
     <div class="score-board" id="scoreDisplay">
-        目前狀態：正在載入 AI 模型...
+        目前狀態：正在初始化 AI 模型...
     </div>
 
     <div class="action-container">
@@ -250,7 +250,7 @@
                 version: VERSION
             });
             model = await rf.load();
-            scoreDisplay.innerText = "模型載入成功！請將手牌對準框線，點擊「影相」";
+            scoreDisplay.innerText = "模型就緒！請將麻雀對準框線，點擊「影相」";
         } catch (err) {
             scoreDisplay.innerText = `⚠️ 模型載入失敗：${err.message || err}`;
         }

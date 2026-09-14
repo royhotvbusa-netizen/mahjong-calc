@@ -1299,7 +1299,7 @@
                 formData.append("file", blob, "image.jpg");
 
                 const xhr = new XMLHttpRequest();
-                const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=25&overlap=30&_t=${Date.now()}`;
+                const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=15&overlap=30&_t=${Date.now()}`;
 
                 xhr.open("POST", apiUrl, true);
                 xhr.onload = function () {

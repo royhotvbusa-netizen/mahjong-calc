@@ -668,9 +668,10 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
+    // 切換為 Roboflow Universe 96.7% mAP 高精準度模型
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
-    const MODEL_ID = "mahjong-tile-scoring";
-    const VERSION = 5;
+    const MODEL_ID = "mahjong-baq4s";
+    const VERSION = 83;
 
     let mediaStream = null;
 
@@ -913,35 +914,35 @@
         document.getElementById('fullscreenCameraModal').style.display = 'none';
     }
 
-    // 全面支援 Roboflow 的英文命名格式 (例如 9 Dot, 6 Bamboo, 1 Character, East Wind)
+    // 對應 Universe 模型 (mahjong-baq4s/83) 標籤命名
     const HONOR_ALIASES = {
-        east: 'E', eastwind: 'E', dong: 'E',
-        south: 'S', southwind: 'S', nan: 'S',
-        west: 'W', westwind: 'W', xi: 'W',
-        north: 'N', northwind: 'N', bei: 'N',
-        red: 'RD', reddragon: 'RD', zhong: 'RD',
-        green: 'GD', greendragon: 'GD', fa: 'GD',
-        white: 'WD', whitedragon: 'WD', bai: 'WD', baiban: 'WD', blank: 'WD'
+        ew: 'E', east: 'E', eastwind: 'E',
+        sw: 'S', south: 'S', southwind: 'S',
+        ww: 'W', west: 'W', westwind: 'W',
+        nw: 'N', north: 'N', northwind: 'N',
+        rd: 'RD', red: 'RD', reddragon: 'RD',
+        gd: 'GD', green: 'GD', greendragon: 'GD',
+        wd: 'WD', white: 'WD', whitedragon: 'WD'
     };
 
     const SUIT_ALIASES = {
-        wan: 'm', man: 'm', character: 'm', characters: 'm', char: 'm', m: 'm',
-        tiao: 's', suo: 's', sou: 's', bamboo: 's', bam: 's', s: 's',
-        tong: 'p', pin: 'p', dot: 'p', dots: 'p', circle: 'p', p: 'p'
+        c: 'm', char: 'm', character: 'm', // C -> 萬 (m)
+        b: 's', bam: 's', bamboo: 's',       // B -> 索 (s)
+        d: 'p', dot: 'p'                    // D -> 筒 (p)
     };
 
     function normalizeTileClass(raw) {
         if (!raw) return null;
-        // 清理所有空格、底線與連字號，轉為純小寫字串
+        // 清除所有空格與符號，統一轉成純小寫字串
         const s = String(raw).toLowerCase().replace(/[\s_\-]/g, '');
 
         if (HONOR_ALIASES[s]) return HONOR_ALIASES[s];
 
-        // 匹配 "9dot" -> 9p, "6bamboo" -> 6s, "1character" -> 1m
+        // 匹配 "1b" -> 1s, "9c" -> 9m, "5d" -> 5p
         let m = s.match(/^(\d)([a-z]+)$/);
         if (m && SUIT_ALIASES[m[2]]) return `${m[1]}${SUIT_ALIASES[m[2]]}`;
 
-        // 匹配 "dot9" -> 9p
+        // 匹配 "b1" -> 1s
         m = s.match(/^([a-z]+)(\d)$/);
         if (m && SUIT_ALIASES[m[1]]) return `${m[2]}${SUIT_ALIASES[m[1]]}`;
 

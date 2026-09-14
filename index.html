@@ -1145,12 +1145,12 @@
         const scoreDisplay = document.getElementById('scoreDisplay');
 
         if (unmapped.length > 0) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span><br>請調整拍攝角度重試。`;
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span><br>已自動匯入至手動選牌，請切換修正。`;
             return;
         }
 
         if (tiles.length < 14 || tiles.length > 18) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles.length} 張牌，食糊需要 14–18 張。</span><br>目前偵測：${tiles.map(t => tileDisplayNames[t] || t).join(', ') || '（無）'}`;
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles.length} 張牌。</span><br>已將結果匯入「手動選牌」，請切換手動補齊/修正。`;
             return;
         }
 
@@ -1158,7 +1158,7 @@
         const result = calculateBestScore(tiles, ctx);
 
         if (!result) {
-            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>偵測到：${tiles.map(t => tileDisplayNames[t] || t).join(', ')}`;
+            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>已匯入手動選牌，請檢查牌型。`;
             return;
         }
 
@@ -1208,7 +1208,6 @@
         const videoWidth = video.videoWidth;
         const videoHeight = video.videoHeight;
 
-        // 計算對應 scanBox 的動態區域
         let cropX = 0, cropY = 0, cropW = videoWidth, cropH = videoHeight;
         if (scanBox) {
             const videoRect = video.getBoundingClientRect();
@@ -1223,7 +1222,6 @@
             }
         }
 
-        // 先嘗試發送精準裁切區域
         canvas.width = Math.max(1, cropW);
         canvas.height = Math.max(1, cropH);
 
@@ -1240,7 +1238,6 @@
                 if (predictions.length > 0) {
                     handlePredictions(predictions);
                 } else {
-                    // 若裁切區域無法辨識，備援嘗試發送全螢幕影像
                     scoreDisplay.innerHTML = "🔄 切換為全區域分析中...";
                     canvas.width = videoWidth;
                     canvas.height = videoHeight;
@@ -1248,7 +1245,7 @@
                     canvas.toBlob((fullBlob) => {
                         sendToRoboflow(fullBlob, (fullPredictions) => {
                             if (fullPredictions.length === 0) {
-                                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請近距離並平行拍攝。";
+                                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請切換至手動選牌。";
                                 return;
                             }
                             handlePredictions(fullPredictions);
@@ -1269,7 +1266,16 @@
             if (norm) tiles.push(norm);
             else unmapped.push(raw);
         });
-        renderScore(tiles, unmapped);
+
+        // 自動將相機辨識的牌載入到手動選牌陣列中
+        if (tiles.length > 0) {
+            selectedManualTiles = [...tiles];
+            renderSelectedManualTiles();
+            // 自動切換到手動選牌分頁供使用者快速修改
+            switchMode('manual');
+        } else {
+            renderScore(tiles, unmapped);
+        }
     }
 
     function captureFromFullscreen() {

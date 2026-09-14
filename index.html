@@ -63,7 +63,6 @@
             cursor: pointer;
         }
 
-        /* 模式切換 Tabs */
         .mode-tabs {
             display: flex;
             gap: 6px;
@@ -90,7 +89,6 @@
             color: #064e3b;
         }
 
-        /* 橫向相機預覽容器 */
         .camera-viewport {
             position: relative;
             width: 100%;
@@ -152,7 +150,6 @@
         .bottom-corners::before { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
         .bottom-corners::after { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
 
-        /* 手動選牌面板 */
         .manual-panel {
             background: rgba(255,255,255,0.06);
             border-radius: 10px;
@@ -228,7 +225,6 @@
         }
         .selected-badge span { cursor: pointer; color: #ef4444; font-weight: bold; }
 
-        /* 設定面板 (Modal / Drawer) */
         .settings-panel {
             background: rgba(0, 0, 0, 0.4);
             border-radius: 10px;
@@ -390,19 +386,16 @@
         <a class="menu-link" onclick="toggleSettingsPanel()">⚙️ 番數規則設定</a>
     </header>
 
-    <!-- 模式切換 -->
     <div class="mode-tabs">
         <button class="mode-tab active" id="modeCameraBtn" onclick="switchMode('camera')">📷 相機辨識</button>
         <button class="mode-tab" id="modeManualBtn" onclick="switchMode('manual')">✋ 手動選牌</button>
     </div>
 
-    <!-- 番數設定面板 (預設隱藏) -->
     <div class="settings-panel" id="settingsPanel" style="display: none;">
         <div style="font-weight: bold; margin-bottom: 6px; font-size: 0.85rem; color: #4ade80;">番數設定 (修改後自動儲存)</div>
         <div class="settings-grid" id="settingsContainer"></div>
     </div>
 
-    <!-- 相機預覽容器 -->
     <div class="camera-viewport" id="cameraContainer">
         <video id="cameraStream" autoplay playsinline></video>
         <div class="corner-frame">
@@ -410,7 +403,6 @@
         </div>
     </div>
 
-    <!-- 手動選牌容器 (預設隱藏) -->
     <div class="manual-panel" id="manualContainer" style="display: none;">
         <div class="sub-tabs">
             <button class="sub-tab-btn active" onclick="switchPickerTab('honor', this)">字牌</button>
@@ -466,13 +458,10 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    const API_KEY = "rf_jHhGokaKDgVyqG5VhoryNtzXQiO1";
-    const MODEL_ID = "mahjong-tile-scoring-3";
+    const API_KEY = "rf_jHhGOkaKDgVyqG5VhOryNtzXqIo1";
+    const MODEL_ID = "mahjong-tile-scoring";
     const VERSION = 3;
 
-    // ============================================================
-    // 番數可自訂設定 (預設值)
-    // ============================================================
     const defaultFanConfig = {
         shisanyao: { cn: '十三么', en: 'Thirteen Orphans', fan: 10 },
         ziyise: { cn: '字一色', en: 'All Honors', fan: 10 },
@@ -513,9 +502,6 @@
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
 
-    // ============================================================
-    // 模式切換 (相機 vs 手動)
-    // ============================================================
     let currentMode = 'camera';
     function switchMode(mode) {
         currentMode = mode;
@@ -529,14 +515,11 @@
             actionContainer.style.display = 'flex';
             document.getElementById('scoreDisplay').innerHTML = "請將 14 張牌橫向對準框線，點擊「影相」";
         } else {
-            actionContainer.style.display = 'none'; // 手動選牌滿14張自動計算
+            actionContainer.style.display = 'none';
             evaluateManualHand();
         }
     }
 
-    // ============================================================
-    // 手動選牌資料結構與互動
-    // ============================================================
     const manualTilesData = {
         honor: [
             { label: '東', val: 'E' }, { label: '南', val: 'S' }, { label: '西', val: 'W' }, { label: '北', val: 'N' },
@@ -636,9 +619,6 @@
         renderResultHTML(result, selectedManualTiles.map(t => tileDisplayNames[t]));
     }
 
-    // ============================================================
-    // Game context (門風 / 圈風 / 自摸)
-    // ============================================================
     const WINDS = ['E', 'S', 'W', 'N'];
     const WIND_NAME = { E: '東', S: '南', W: '西', N: '北' };
 
@@ -682,9 +662,6 @@
 
     updateContext();
 
-    // ============================================================
-    // Camera Init
-    // ============================================================
     async function initCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -702,9 +679,6 @@
         }
     }
 
-    // ============================================================
-    // Tile Normalization & Scoring Logic
-    // ============================================================
     const HONOR_ALIASES = {
         east: 'E', dong: 'E',
         south: 'S', nan: 'S',
@@ -940,55 +914,72 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // ============================================================
-    // 標準 HTTP POST 請求辨識
-    // ============================================================
+    // Direct Base64 POST processing with Canvas Compression for mobile/iOS stability
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
 
-        canvas.width = 640;
-        canvas.height = 480;
+        if (!video.videoWidth) {
+            scoreDisplay.innerHTML = "⚠️ 相機尚未準備好，請稍候再試。";
+            return;
+        }
+
+        const maxDim = 1024;
+        let targetWidth = video.videoWidth;
+        let targetHeight = video.videoHeight;
+
+        if (targetWidth > maxDim) {
+            targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
+            targetWidth = maxDim;
+        }
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
         const ctx2d = canvas.getContext('2d');
-        ctx2d.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx2d.drawImage(video, 0, 0, targetWidth, targetHeight);
 
-        scoreDisplay.innerHTML = "🔄 正在上傳並分析手牌...";
+        scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
-        canvas.toBlob(async (blob) => {
-            try {
-                const response = await fetch(`https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`, {
-                    method: 'POST',
-                    body: blob
-                });
+        try {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+            const base64Data = dataUrl.split(',')[1];
 
-                if (!response.ok) {
-                    throw new Error(`伺服器回應錯誤 (${response.status})`);
-                }
+            const response = await fetch(`https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: base64Data
+            });
 
-                const data = await response.json();
-                const predictions = data.predictions || [];
-
-                if (predictions.length === 0) {
-                    scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
-                    return;
-                }
-
-                const rawClasses = predictions.map(p => p.class);
-                const tiles14 = [];
-                const unmapped = [];
-                rawClasses.forEach(raw => {
-                    const norm = normalizeTileClass(raw);
-                    if (norm) tiles14.push(norm);
-                    else unmapped.push(raw);
-                });
-
-                renderScore(tiles14, unmapped);
-
-            } catch (err) {
-                scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message}</span>`;
+            if (!response.ok) {
+                throw new Error(`HTTP 錯誤碼 (${response.status})`);
             }
-        }, 'image/jpeg', 0.85);
+
+            const data = await response.json();
+            const predictions = data.predictions || [];
+
+            if (predictions.length === 0) {
+                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                return;
+            }
+
+            const rawClasses = predictions.map(p => p.class);
+            const tiles14 = [];
+            const unmapped = [];
+            rawClasses.forEach(raw => {
+                const norm = normalizeTileClass(raw);
+                if (norm) tiles14.push(norm);
+                else unmapped.push(raw);
+            });
+
+            renderScore(tiles14, unmapped);
+
+        } catch (err) {
+            console.error("Detect Error:", err);
+            scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message || '連線失敗'}</span>`;
+        }
     }
 
     window.addEventListener('load', async () => {

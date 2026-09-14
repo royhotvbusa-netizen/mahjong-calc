@@ -1170,7 +1170,8 @@
         formData.append("file", blob, "image.jpg");
 
         const xhr = new XMLHttpRequest();
-        const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=40`;
+        // 加上 Cache-Busting 隨機時間戳 _t，防止瀏覽器快取舊的 API 回傳結果
+        const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=40&_t=${Date.now()}`;
 
         xhr.open("POST", apiUrl, true);
 
@@ -1267,11 +1268,9 @@
             else unmapped.push(raw);
         });
 
-        // 自動將相機辨識的牌載入到手動選牌陣列中
         if (tiles.length > 0) {
             selectedManualTiles = [...tiles];
             renderSelectedManualTiles();
-            // 自動切換到手動選牌分頁供使用者快速修改
             switchMode('manual');
         } else {
             renderScore(tiles, unmapped);
@@ -1281,8 +1280,9 @@
     function captureFromFullscreen() {
         const video = document.getElementById('fullscreenVideo');
         const scanBox = document.getElementById('scanBox');
-        closeFullscreenCamera();
+        // 必須先擷取 Canvas 影像，再關閉 Modal 視窗
         processImageAndSend(video, scanBox);
+        closeFullscreenCamera();
     }
 </script>
 

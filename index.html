@@ -77,7 +77,7 @@
     <div class="section">
         <h2>3. 計算結果</h2>
         <label class="checkbox-label">
-            <input type="checkbox" id="selfDrawCheckbox"> 自摸胡牌 (符合時計 1 番)
+            <input type="checkbox" id="selfDrawCheckbox"> 自摸胡牌 (獨立加計 1 番)
         </label>
         <button id="calculateBtn" style="background-color: #27ae60;">開始計番</button>
         <div id="resultOutput" class="result-box" style="display:none;"></div>
@@ -98,7 +98,7 @@
         dragonTriplet: { name: '中發白刻子', fan: 1 },
         windTriplet: { name: '風牌刻子', fan: 1 },
         allChows: { name: '平糊', fan: 1 },
-        chicken: { name: '自摸 (雞糊)', fan: 1 }
+        selfDraw: { name: '自摸', fan: 1 }
     };
 
     let currentFans = JSON.parse(localStorage.getItem('mahjong_custom_fans')) || defaultFans;
@@ -296,12 +296,14 @@
             totalFan += currentFans.allChows.fan;
         }
 
-        // 10. 自摸 / 雞糊判定
-        if (matchedFans.length === 0 && isSelfDraw) {
-            matchedFans.push({ name: currentFans.chicken.name, fan: currentFans.chicken.fan });
-            totalFan += currentFans.chicken.fan;
-        } else if (matchedFans.length === 0 && !isSelfDraw) {
-            matchedFans.push({ name: '無番胡牌 (非自摸)', fan: 0 });
+        // 10. 自摸獨立加番判定
+        if (isSelfDraw) {
+            matchedFans.push({ name: currentFans.selfDraw.name, fan: currentFans.selfDraw.fan });
+            totalFan += currentFans.selfDraw.fan;
+        }
+
+        if (matchedFans.length === 0) {
+            matchedFans.push({ name: '雞糊 / 無番', fan: 0 });
         }
 
         let html = `<strong>點算 14 張牌完成！</strong><br><br><ul>`;

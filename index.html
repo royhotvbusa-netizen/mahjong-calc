@@ -9,7 +9,7 @@
         .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         h1 { font-size: 1.5rem; text-align: center; color: #2c3e50; margin-bottom: 20px; }
         .section { margin-bottom: 20px; padding: 15px; background: #fafafa; border-radius: 8px; border: 1px solid #eaeaea; }
-        .section h2 { font-size: 1.1rem; margin-top: 0; color: #34495e; }
+        .section h2 { font-size: 1.1rem; margin-top: 0; color: #34495e; display: flex; justify-content: space-between; align-items: center; }
         button { background-color: #3498db; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 5px; }
         button:hover { background-color: #2980b9; }
         .tile-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 50px; align-items: center; }
@@ -22,12 +22,28 @@
         .picker-tile { background: white; border: 1px solid #cbd5e1; padding: 8px 4px; text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         .picker-tile:hover { background: #f1f5f9; border-color: #94a3b8; }
         .result-box { margin-top: 15px; padding: 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; color: #065f46; font-size: 0.95rem; line-height: 1.5; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem; }
+        .settings-item input { width: 50px; text-align: center; padding: 4px; border: 1px solid #94a3b8; border-radius: 4px; font-size: 0.9rem; }
+        .toggle-link { font-size: 0.85rem; color: #3498db; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>廣東麻雀計番系統</h1>
+
+    <!-- 牌型番數設定區 -->
+    <div class="section">
+        <h2>
+            <span>番數規則設定</span>
+            <span class="toggle-link" onclick="toggleSettings()">展開/收起</span>
+        </h2>
+        <div id="settingsPanel" style="display:none;">
+            <div class="settings-grid" id="settingsContainer"></div>
+            <button onclick="saveSettings()" style="background-color: #7f8c8d; margin-top: 10px;">儲存番數設定</button>
+        </div>
+    </div>
 
     <!-- 拍照與自動辨識區 -->
     <div class="section">
@@ -65,6 +81,53 @@
 </div>
 
 <script>
+    // 預設番數規則
+    const defaultFans = {
+        thirteen: { name: '十三么', fan: 13 },
+        allHonors: { name: '字一色', fan: 13 },
+        bigWinds: { name: '大四喜', fan: 13 },
+        smallWinds: { name: '小四喜', fan: 10 },
+        bigDragons: { name: '大三元', fan: 8 },
+        smallDragons: { name: '小三元', fan: 5 },
+        fullFlush: { name: '清一色', fan: 7 },
+        halfFlush: { name: '混一色', fan: 3 },
+        allTriplets: { name: '對對糊', fan: 3 },
+        dragonTriplet: { name: '中發白刻子', fan: 1 },
+        windTriplet: { name: '風牌刻子', fan: 1 },
+        allChows: { name: '平糊', fan: 1 },
+        chicken: { name: '雞糊 / 基本和', fan: 1 }
+    };
+
+    let currentFans = JSON.parse(localStorage.getItem('mahjong_custom_fans')) || defaultFans;
+
+    function initSettingsUI() {
+        const container = document.getElementById('settingsContainer');
+        container.innerHTML = '';
+        for (let key in currentFans) {
+            const item = document.createElement('div');
+            item.className = 'settings-item';
+            item.innerHTML = `<span>${currentFans[key].name}</span><input type="number" id="fan_${key}" value="${currentFans[key].fan}">`;
+            container.appendChild(item);
+        }
+    }
+
+    function toggleSettings() {
+        const panel = document.getElementById('settingsPanel');
+        panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+    }
+
+    function saveSettings() {
+        for (let key in currentFans) {
+            const input = document.getElementById(`fan_${key}`);
+            if (input) {
+                currentFans[key].fan = parseInt(input.value) || 0;
+            }
+        }
+        localStorage.setItem('mahjong_custom_fans', JSON.stringify(currentFans));
+        alert('番數設定已成功儲存！');
+        toggleSettings();
+    }
+
     const tilesData = {
         honor: ['東', '南', '西', '北', '中', '發', '白'],
         character: ['一萬', '二萬', '三萬', '四萬', '五萬', '六萬', '七萬', '八萬', '九萬'],
@@ -147,8 +210,8 @@
         if (Object.keys(counts).length === 13) {
             yaojiu.forEach(y => { if (!counts[y]) isThirteenOrphans = false; });
             if (Object.values(counts).some(c => c === 2) && isThirteenOrphans) {
-                matchedFans.push({ name: '十三么', fan: 13 });
-                totalFan += 13;
+                matchedFans.push({ name: currentFans.thirteen.name, fan: currentFans.thirteen.fan });
+                totalFan += currentFans.thirteen.fan;
             }
         }
 
@@ -156,8 +219,8 @@
         const honors = ['東', '南', '西', '北', '中', '發', '白'];
         const allHonors = selectedTiles.every(t => honors.includes(t));
         if (allHonors) {
-            matchedFans.push({ name: '字一色', fan: 13 });
-            totalFan += 13;
+            matchedFans.push({ name: currentFans.allHonors.name, fan: currentFans.allHonors.fan });
+            totalFan += currentFans.allHonors.fan;
         }
 
         // 3. 大四喜 / 小四喜檢測
@@ -165,11 +228,11 @@
         let windTriplets = winds.filter(w => (counts[w] || 0) >= 3).length;
         let windPairs = winds.filter(w => (counts[w] || 0) === 2).length;
         if (windTriplets === 4) {
-            matchedFans.push({ name: '大四喜', fan: 13 });
-            totalFan += 13;
+            matchedFans.push({ name: currentFans.bigWinds.name, fan: currentFans.bigWinds.fan });
+            totalFan += currentFans.bigWinds.fan;
         } else if (windTriplets === 3 && windPairs === 1) {
-            matchedFans.push({ name: '小四喜', fan: 10 });
-            totalFan += 10;
+            matchedFans.push({ name: currentFans.smallWinds.name, fan: currentFans.smallWinds.fan });
+            totalFan += currentFans.smallWinds.fan;
         }
 
         // 4. 大三元 / 小三元檢測
@@ -177,11 +240,11 @@
         let dragonTriplets = dragons.filter(d => (counts[d] || 0) >= 3).length;
         let dragonPairs = dragons.filter(d => (counts[d] || 0) === 2).length;
         if (dragonTriplets === 3) {
-            matchedFans.push({ name: '大三元', fan: 8 });
-            totalFan += 8;
+            matchedFans.push({ name: currentFans.bigDragons.name, fan: currentFans.bigDragons.fan });
+            totalFan += currentFans.bigDragons.fan;
         } else if (dragonTriplets === 2 && dragonPairs === 1) {
-            matchedFans.push({ name: '小三元', fan: 5 });
-            totalFan += 5;
+            matchedFans.push({ name: currentFans.smallDragons.name, fan: currentFans.smallDragons.fan });
+            totalFan += currentFans.smallDragons.fan;
         }
 
         // 5. 清一色 / 混一色檢測
@@ -190,26 +253,26 @@
         let hasHonor = selectedTiles.some(t => honors.includes(t));
 
         if (presentSuits.length === 1 && !hasHonor) {
-            matchedFans.push({ name: '清一色', fan: 7 });
-            totalFan += 7;
+            matchedFans.push({ name: currentFans.fullFlush.name, fan: currentFans.fullFlush.fan });
+            totalFan += currentFans.fullFlush.fan;
         } else if (presentSuits.length === 1 && hasHonor) {
-            matchedFans.push({ name: '混一色', fan: 3 });
-            totalFan += 3;
+            matchedFans.push({ name: currentFans.halfFlush.name, fan: currentFans.halfFlush.fan });
+            totalFan += currentFans.halfFlush.fan;
         }
 
         // 6. 中發白刻子
         dragons.forEach(d => {
             if ((counts[d] || 0) >= 3) {
-                matchedFans.push({ name: `中發白刻子 (${d})`, fan: 1 });
-                totalFan += 1;
+                matchedFans.push({ name: `${currentFans.dragonTriplet.name} (${d})`, fan: currentFans.dragonTriplet.fan });
+                totalFan += currentFans.dragonTriplet.fan;
             }
         });
 
-        // 7. 門風刻 / 圈風刻
+        // 7. 風牌刻子
         winds.forEach(w => {
             if ((counts[w] || 0) >= 3) {
-                matchedFans.push({ name: `風刻刻子 (${w})`, fan: 1 });
-                totalFan += 1;
+                matchedFans.push({ name: `${currentFans.windTriplet.name} (${w})`, fan: currentFans.windTriplet.fan });
+                totalFan += currentFans.windTriplet.fan;
             }
         });
 
@@ -219,19 +282,19 @@
             if (counts[t] >= 3) tripletCount++;
         }
         if (tripletCount === 4) {
-            matchedFans.push({ name: '對對糊', fan: 3 });
-            totalFan += 3;
+            matchedFans.push({ name: currentFans.allTriplets.name, fan: currentFans.allTriplets.fan });
+            totalFan += currentFans.allTriplets.fan;
         }
 
         // 9. 平糊檢測
         if (!hasHonor && tripletCount === 0 && totalFan === 0) {
-            matchedFans.push({ name: '平糊', fan: 1 });
-            totalFan += 1;
+            matchedFans.push({ name: currentFans.allChows.name, fan: currentFans.allChows.fan });
+            totalFan += currentFans.allChows.fan;
         }
 
         if (matchedFans.length === 0) {
-            matchedFans.push({ name: '雞糊 / 基本和', fan: 1 });
-            totalFan += 1;
+            matchedFans.push({ name: currentFans.chicken.name, fan: currentFans.chicken.fan });
+            totalFan += currentFans.chicken.fan;
         }
 
         let html = `<strong>點算 14 張牌完成！</strong><br><br><ul>`;
@@ -249,9 +312,9 @@
         }
     }
 
-    // 確實綁定按鈕點擊事件
     document.getElementById('calculateBtn').onclick = calculateMahjong;
 
+    initSettingsUI();
     initPickers();
 </script>
 

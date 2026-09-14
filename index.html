@@ -109,11 +109,10 @@
             object-fit: cover;
         }
 
-        /* 縮小主頁面相機框區域，引導使用者近距離拍攝 */
         .corner-frame {
             position: absolute;
-            width: 75%;
-            height: 60px;
+            width: 80%;
+            height: 70px;
             box-sizing: border-box;
             pointer-events: none;
             z-index: 2;
@@ -186,23 +185,22 @@
 
         .mask-top, .mask-bottom {
             width: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             flex: 1;
         }
 
-        /* 縮小全螢幕掃描條的高度與兩側邊界 */
         .scan-strip-container {
             width: 100%;
-            height: 70px;
+            height: 80px;
             display: flex;
             position: relative;
             align-items: center;
         }
 
         .mask-left, .mask-right {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             height: 100%;
-            width: 10%;
+            width: 5%;
         }
 
         .scan-box {
@@ -1167,6 +1165,35 @@
         renderResultHTML(result, tiles.map(t => tileDisplayNames[t] || t));
     }
 
+    function sendToRoboflow(blob, onComplete, onError) {
+        const formData = new FormData();
+        formData.append("file", blob, "image.jpg");
+
+        const xhr = new XMLHttpRequest();
+        const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=40`;
+
+        xhr.open("POST", apiUrl, true);
+
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    onComplete(data.predictions || []);
+                } catch (e) {
+                    onError(`解析回應失敗：${e.message}`);
+                }
+            } else {
+                onError(`伺服器回應錯誤 (HTTP ${xhr.status}): ${xhr.responseText || xhr.statusText}`);
+            }
+        };
+
+        xhr.onerror = function () {
+            onError(`跨域或網路連線被封鎖 (CORS Error)。`);
+        };
+
+        xhr.send(formData);
+    }
+
     function processImageAndSend(video, scanBox) {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const canvas = document.getElementById('snapshotCanvas');
@@ -1178,11 +1205,30 @@
 
         scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+
+        // 計算對應 scanBox 的動態區域
+        let cropX = 0, cropY = 0, cropW = videoWidth, cropH = videoHeight;
+        if (scanBox) {
+            const videoRect = video.getBoundingClientRect();
+            const scanRect = scanBox.getBoundingClientRect();
+            if (videoRect.width > 0 && videoRect.height > 0) {
+                const scaleX = videoWidth / videoRect.width;
+                const scaleY = videoHeight / videoRect.height;
+                cropX = Math.max(0, (scanRect.left - videoRect.left) * scaleX);
+                cropY = Math.max(0, (scanRect.top - videoRect.top) * scaleY);
+                cropW = Math.min(videoWidth - cropX, scanRect.width * scaleX);
+                cropH = Math.min(videoHeight - cropY, scanRect.height * scaleY);
+            }
+        }
+
+        // 先嘗試發送精準裁切區域
+        canvas.width = Math.max(1, cropW);
+        canvas.height = Math.max(1, cropH);
 
         const ctx2d = canvas.getContext('2d');
-        ctx2d.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx2d.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob((blob) => {
             if (!blob) {
@@ -1190,51 +1236,40 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append("file", blob, "image.jpg");
-
-            const xhr = new XMLHttpRequest();
-            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=15&overlap=30`;
-
-            xhr.open("POST", apiUrl, true);
-
-            xhr.onload = function () {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        const data = JSON.parse(xhr.responseText);
-                        let predictions = data.predictions || [];
-
-                        if (predictions.length === 0) {
-                            scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請將手牌精準對準框線重試。";
-                            return;
-                        }
-
-                        predictions.sort((a, b) => a.x - b.x);
-
-                        const rawClasses = predictions.map(p => p.class);
-                        const tiles = [];
-                        const unmapped = [];
-                        rawClasses.forEach(raw => {
-                            const norm = normalizeTileClass(raw);
-                            if (norm) tiles.push(norm);
-                            else unmapped.push(raw);
-                        });
-
-                        renderScore(tiles, unmapped);
-                    } catch (e) {
-                        scoreDisplay.innerHTML = `❌ 解析回應失敗：${e.message}`;
-                    }
+            sendToRoboflow(blob, (predictions) => {
+                if (predictions.length > 0) {
+                    handlePredictions(predictions);
                 } else {
-                    scoreDisplay.innerHTML = `❌ 伺服器回應錯誤 (HTTP ${xhr.status}): ${xhr.responseText || xhr.statusText}`;
+                    // 若裁切區域無法辨識，備援嘗試發送全螢幕影像
+                    scoreDisplay.innerHTML = "🔄 切換為全區域分析中...";
+                    canvas.width = videoWidth;
+                    canvas.height = videoHeight;
+                    ctx2d.drawImage(video, 0, 0, videoWidth, videoHeight);
+                    canvas.toBlob((fullBlob) => {
+                        sendToRoboflow(fullBlob, (fullPredictions) => {
+                            if (fullPredictions.length === 0) {
+                                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請近距離並平行拍攝。";
+                                return;
+                            }
+                            handlePredictions(fullPredictions);
+                        }, (err) => scoreDisplay.innerHTML = `❌ ${err}`);
+                    }, 'image/jpeg', 0.90);
                 }
-            };
-
-            xhr.onerror = function () {
-                scoreDisplay.innerHTML = `❌ 跨域或網路連線被封鎖 (CORS Error)。請確認 API Key 設定。`;
-            };
-
-            xhr.send(formData);
+            }, (err) => scoreDisplay.innerHTML = `❌ ${err}`);
         }, 'image/jpeg', 0.90);
+    }
+
+    function handlePredictions(predictions) {
+        predictions.sort((a, b) => a.x - b.x);
+        const rawClasses = predictions.map(p => p.class);
+        const tiles = [];
+        const unmapped = [];
+        rawClasses.forEach(raw => {
+            const norm = normalizeTileClass(raw);
+            if (norm) tiles.push(norm);
+            else unmapped.push(raw);
+        });
+        renderScore(tiles, unmapped);
     }
 
     function captureFromFullscreen() {

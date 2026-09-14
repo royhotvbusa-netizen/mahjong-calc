@@ -26,6 +26,7 @@
         .settings-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.9rem; }
         .settings-item input { width: 50px; text-align: center; padding: 4px; border: 1px solid #94a3b8; border-radius: 4px; font-size: 0.9rem; }
         .toggle-link { font-size: 0.85rem; color: #3498db; cursor: pointer; text-decoration: underline; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.95rem; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -75,13 +76,15 @@
     <!-- 計番結果區 -->
     <div class="section">
         <h2>3. 計算結果</h2>
+        <label class="checkbox-label">
+            <input type="checkbox" id="selfDrawCheckbox"> 自摸胡牌 (符合時計 1 番)
+        </label>
         <button id="calculateBtn" style="background-color: #27ae60;">開始計番</button>
         <div id="resultOutput" class="result-box" style="display:none;"></div>
     </div>
 </div>
 
 <script>
-    // 預設番數規則
     const defaultFans = {
         thirteen: { name: '十三么', fan: 13 },
         allHonors: { name: '字一色', fan: 13 },
@@ -95,7 +98,7 @@
         dragonTriplet: { name: '中發白刻子', fan: 1 },
         windTriplet: { name: '風牌刻子', fan: 1 },
         allChows: { name: '平糊', fan: 1 },
-        chicken: { name: '雞糊 / 基本和', fan: 1 }
+        chicken: { name: '自摸 (雞糊)', fan: 1 }
     };
 
     let currentFans = JSON.parse(localStorage.getItem('mahjong_custom_fans')) || defaultFans;
@@ -203,6 +206,7 @@
 
         let matchedFans = [];
         let totalFan = 0;
+        const isSelfDraw = document.getElementById('selfDrawCheckbox').checked;
 
         // 1. 十三么檢測
         const yaojiu = ['一萬', '九萬', '一索', '九索', '一筒', '九筒', '東', '南', '西', '北', '中', '發', '白'];
@@ -292,9 +296,12 @@
             totalFan += currentFans.allChows.fan;
         }
 
-        if (matchedFans.length === 0) {
+        // 10. 自摸 / 雞糊判定
+        if (matchedFans.length === 0 && isSelfDraw) {
             matchedFans.push({ name: currentFans.chicken.name, fan: currentFans.chicken.fan });
             totalFan += currentFans.chicken.fan;
+        } else if (matchedFans.length === 0 && !isSelfDraw) {
+            matchedFans.push({ name: '無番胡牌 (非自摸)', fan: 0 });
         }
 
         let html = `<strong>點算 14 張牌完成！</strong><br><br><ul>`;

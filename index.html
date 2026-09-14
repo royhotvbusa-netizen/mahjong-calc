@@ -16,38 +16,38 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 8px;
+            padding: 12px;
             display: flex;
             justify-content: center;
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 480px;
             background-color: #0d3824;
             border-radius: 16px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-            padding: 14px;
+            padding: 16px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            min-height: 90vh;
+            min-height: 80vh;
         }
 
-        header { margin-bottom: 2px; }
+        header { margin-bottom: 4px; }
 
         .title-row {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: bold;
         }
 
-        .dropdown-icon { font-size: 0.9rem; color: var(--text-sub); }
+        .dropdown-icon { font-size: 1rem; color: var(--text-sub); }
 
         .subtitle {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-sub);
             margin-top: 2px;
         }
@@ -57,17 +57,17 @@
             align-items: center;
             gap: 4px;
             color: var(--text-sub);
-            font-size: 0.75rem;
-            margin-top: 2px;
+            font-size: 0.8rem;
+            margin-top: 4px;
             text-decoration: none;
         }
 
-        /* 橫向相機檢視區 */
+        /* 橫向相機預覽容器 */
         .camera-viewport {
             position: relative;
             width: 100%;
-            height: 240px;
-            margin: 10px 0;
+            height: 220px;
+            margin: 12px 0;
             background: #000;
             border-radius: 10px;
             overflow: hidden;
@@ -82,11 +82,11 @@
             object-fit: cover;
         }
 
-        /* 橫向長形對焦框 */
+        /* 橫向對準框線 */
         .corner-frame {
             position: absolute;
-            width: 92%;
-            height: 130px;
+            width: 90%;
+            height: 120px;
             box-sizing: border-box;
             pointer-events: none;
             z-index: 2;
@@ -105,6 +105,13 @@
         .corner-frame::before { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
         .corner-frame::after { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
 
+        .bottom-corners {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
         .bottom-corners::before, .bottom-corners::after {
             content: '';
             position: absolute;
@@ -121,16 +128,16 @@
         .context-panel {
             background: rgba(255,255,255,0.06);
             border-radius: 10px;
-            padding: 8px 12px;
-            margin-bottom: 10px;
-            font-size: 0.82rem;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
         }
 
         .context-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .context-row:last-child { margin-bottom: 0; }
@@ -144,8 +151,8 @@
             border: 1px solid rgba(255,255,255,0.15);
             color: var(--text-main);
             border-radius: 6px;
-            padding: 3px 8px;
-            font-size: 0.78rem;
+            padding: 3px 9px;
+            font-size: 0.8rem;
             cursor: pointer;
         }
 
@@ -157,9 +164,9 @@
         }
 
         .hand-input {
-            width: 42px;
-            padding: 2px 4px;
-            font-size: 0.8rem;
+            width: 48px;
+            padding: 3px 6px;
+            font-size: 0.85rem;
             border-radius: 6px;
             border: 1px solid rgba(255,255,255,0.2);
             background: rgba(255,255,255,0.9);
@@ -167,43 +174,43 @@
         }
 
         .score-board {
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: bold;
             margin-top: 4px;
             background: rgba(255, 255, 255, 0.05);
-            padding: 8px 10px;
+            padding: 10px;
             border-radius: 8px;
-            line-height: 1.4;
+            line-height: 1.5;
             word-break: break-word;
         }
 
         .fan-total {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             color: #4ade80;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .fan-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             font-weight: normal;
         }
 
         .fan-list li {
             display: flex;
             justify-content: space-between;
-            padding: 2px 0;
+            padding: 3px 0;
             border-bottom: 1px dashed rgba(255,255,255,0.1);
         }
 
         .fan-list li:last-child { border-bottom: none; }
 
         .tile-echo {
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: var(--text-sub);
-            margin-top: 6px;
+            margin-top: 8px;
             word-break: break-all;
         }
 
@@ -214,7 +221,7 @@
             display: flex;
             justify-content: flex-end;
             margin-top: auto;
-            padding-top: 6px;
+            padding-bottom: 5px;
         }
 
         .capture-btn {
@@ -222,8 +229,8 @@
             color: #064e3b;
             border: none;
             border-radius: 25px;
-            padding: 8px 22px;
-            font-size: 0.95rem;
+            padding: 10px 20px;
+            font-size: 1rem;
             font-weight: bold;
             display: flex;
             align-items: center;
@@ -240,7 +247,7 @@
         <div class="title-row">
             香港麻雀 <span class="dropdown-icon">▼</span> 計番
         </div>
-        <div class="subtitle">橫向掃描 14 張手牌，立即計算番數</div>
+        <div class="subtitle">掃描手牌，立即計算番數</div>
         <a class="menu-link">ⓘ 番數表</a>
     </header>
 
@@ -275,7 +282,7 @@
     </div>
 
     <div class="score-board" id="scoreDisplay">
-        相機已就緒，請將 14 張牌打橫對準框線，點擊「影相」
+        相機已就緒，請將 14 張牌橫向對準框線，點擊「影相」
     </div>
 
     <div class="action-container">
@@ -293,7 +300,7 @@
     const VERSION = 3;
 
     // ============================================================
-    // Game Context
+    // Game context (門風 / 圈風 / 自摸)
     // ============================================================
     const WINDS = ['E', 'S', 'W', 'N'];
     const WIND_NAME = { E: '東', S: '南', W: '西', N: '北' };
@@ -334,7 +341,7 @@
     updateContext();
 
     // ============================================================
-    // Camera
+    // Camera Init
     // ============================================================
     async function initCamera() {
         try {
@@ -354,33 +361,41 @@
     }
 
     // ============================================================
-    // Normalization & Scoring Logic
+    // Tile Normalization & Scoring Logic
     // ============================================================
     const HONOR_ALIASES = {
-        east: 'E', dong: 'E', south: 'S', nan: 'S', west: 'W', xi: 'W', north: 'N', bei: 'N',
-        red: 'RD', zhong: 'RD', reddragon: 'RD', green: 'GD', fa: 'GD', greendragon: 'GD',
+        east: 'E', dong: 'E',
+        south: 'S', nan: 'S',
+        west: 'W', xi: 'W',
+        north: 'N', bei: 'N',
+        red: 'RD', zhong: 'RD', reddragon: 'RD',
+        green: 'GD', fa: 'GD', greendragon: 'GD',
         white: 'WD', bai: 'WD', whitedragon: 'WD', baiban: 'WD', blank: 'WD'
     };
+
     const SUIT_ALIASES = {
-        wan: 'm', man: 'm', character: 'm', m: 'm',
-        tiao: 's', suo: 's', sou: 's', bamboo: 's', s: 's',
-        tong: 'p', pin: 'p', dot: 'p', p: 'p'
+        wan: 'm', man: 'm', character: 'm', characters: 'm', char: 'm', m: 'm',
+        tiao: 's', suo: 's', sou: 's', bamboo: 's', bam: 's', s: 's',
+        tong: 'p', pin: 'p', dot: 'p', dots: 'p', circle: 'p', p: 'p'
     };
 
     function normalizeTileClass(raw) {
         if (!raw) return null;
         const s = String(raw).toLowerCase().replace(/[\s_\-]/g, '');
         if (HONOR_ALIASES[s]) return HONOR_ALIASES[s];
+
         let m = s.match(/^(\d)([a-z]+)$/);
         if (m && SUIT_ALIASES[m[2]]) return `${m[1]}${SUIT_ALIASES[m[2]]}`;
+
         m = s.match(/^([a-z]+)(\d)$/);
         if (m && SUIT_ALIASES[m[1]]) return `${m[2]}${SUIT_ALIASES[m[1]]}`;
+
         return null;
     }
 
     const HONOR_TILES = ['E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
-    const DRAGON_TILES = ['RD', 'GD', 'WD'];
     const WIND_TILES = ['E', 'S', 'W', 'N'];
+    const DRAGON_TILES = ['RD', 'GD', 'WD'];
     const TERMINAL_HONOR_SET = ['1m', '9m', '1s', '9s', '1p', '9p', 'E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
 
     const isHonor = t => HONOR_TILES.includes(t);
@@ -450,10 +465,12 @@
         const distinct = [...new Set(tiles14)];
         const decomps = [];
         for (const pairTile of distinct) {
-            if (tiles14.filter(t => t === pairTile).length < 2) continue;
+            const count = tiles14.filter(t => t === pairTile).length;
+            if (count < 2) continue;
             const remaining = removeTiles(tiles14, [pairTile, pairTile]);
             if (remaining === null) continue;
-            for (const sets of decomposeMelds(sortTiles(remaining))) {
+            const meldOptions = decomposeMelds(sortTiles(remaining));
+            for (const sets of meldOptions) {
                 if (sets.length === 4) decomps.push({ pair: pairTile, sets });
             }
         }
@@ -464,26 +481,26 @@
         if (tiles14.some(t => !TERMINAL_HONOR_SET.includes(t))) return false;
         const counts = {};
         tiles14.forEach(t => counts[t] = (counts[t] || 0) + 1);
-        if (Object.keys(counts).length !== 13) return false;
-        return Object.values(counts).filter(c => c === 2).length === 1;
+        return Object.keys(counts).length === 13 && Object.values(counts).filter(c => c === 2).length === 1;
     }
 
     const ABSORBS_WIND_DRAGON = ['shisanyao', 'ziyise', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan', 'qingyise'];
+
     const FAN_NAMES = {
-        shisanyao: { cn: '十三么', fan: 10 },
-        ziyise: { cn: '字一色', fan: 10 },
-        dasixi: { cn: '大四喜', fan: 10 },
-        dasanyuan: { cn: '大三元', fan: 8 },
-        xiaosixi: { cn: '小四喜', fan: 5 },
-        qingyise: { cn: '清一色', fan: 7 },
-        xiaosanyuan: { cn: '小三元', fan: 4 },
-        hunyise: { cn: '混一色', fan: 3 },
-        duiduihu: { cn: '對對糊', fan: 3 },
-        pingwu: { cn: '平糊', fan: 1 },
-        quanfengke: { cn: '圈風刻', fan: 1 },
-        menfengke: { cn: '門風刻', fan: 1 },
-        dragonke: { cn: '龍牌刻', fan: 1 },
-        zimo: { cn: '自摸', fan: 1 }
+        shisanyao: { cn: '十三么', en: 'Thirteen Orphans', fan: 10 },
+        ziyise: { cn: '字一色', en: 'All Honors', fan: 10 },
+        dasixi: { cn: '大四喜', en: 'Big Four Winds', fan: 10 },
+        dasanyuan: { cn: '大三元', en: 'Big Three Dragons', fan: 8 },
+        xiaosixi: { cn: '小四喜', en: 'Little Four Winds', fan: 5 },
+        qingyise: { cn: '清一色', en: 'Full Flush', fan: 7 },
+        xiaosanyuan: { cn: '小三元', en: 'Little Three Dragons', fan: 4 },
+        hunyise: { cn: '混一色', en: 'Half Flush', fan: 3 },
+        duiduihu: { cn: '對對糊', en: 'All Triplets', fan: 3 },
+        pingwu: { cn: '平糊', en: 'Common Hand', fan: 1 },
+        quanfengke: { cn: '圈風刻', en: 'Prevailing Wind Triplet', fan: 1 },
+        menfengke: { cn: '門風刻', en: 'Seat Wind Triplet', fan: 1 },
+        dragonke: { cn: '龍牌刻', en: 'Dragon Triplet', fan: 1 },
+        zimo: { cn: '自摸', en: 'Self-Draw', fan: 1 }
     };
 
     function analyzeDecomposition(decomp, ctx) {
@@ -494,32 +511,39 @@
         const windTriplets = [];
 
         sets.forEach(s => {
-            if (s.type === 'sequence') allTriplet = false;
-            else {
-                if (DRAGON_TILES.includes(s.tile)) dragonTriplets.push(s.tile);
+            if (s.type === 'sequence') {
+                allTriplet = false;
+                suitsUsed.add(tileSuit(s.tile));
+            } else {
+                if (isSuited(s.tile)) suitsUsed.add(tileSuit(s.tile));
+                else if (DRAGON_TILES.includes(s.tile)) dragonTriplets.push(s.tile);
                 else if (WIND_TILES.includes(s.tile)) windTriplets.push(s.tile);
             }
-            if (isSuited(s.tile)) suitsUsed.add(tileSuit(s.tile));
         });
         if (isSuited(pair)) suitsUsed.add(tileSuit(pair));
 
-        const hasHonor = sets.some(s => isHonor(s.tile)) || isHonor(pair);
+        const hasHonorAnywhere = sets.some(s => isHonor(s.tile)) || isHonor(pair);
         const suitCount = suitsUsed.size;
+        const isDragonPair = DRAGON_TILES.includes(pair);
+        const isWindPair = WIND_TILES.includes(pair);
 
         const flags = {
-            ziyise: suitCount === 0 && hasHonor,
-            qingyise: suitCount === 1 && !hasHonor,
-            hunyise: suitCount === 1 && hasHonor,
+            ziyise: suitCount === 0 && hasHonorAnywhere,
+            qingyise: suitCount === 1 && !hasHonorAnywhere,
+            hunyise: suitCount === 1 && hasHonorAnywhere,
             duiduihu: allTriplet,
             dasanyuan: dragonTriplets.length === 3,
-            xiaosanyuan: dragonTriplets.length === 2 && DRAGON_TILES.includes(pair),
+            xiaosanyuan: dragonTriplets.length === 2 && isDragonPair,
             dasixi: windTriplets.length === 4,
-            xiaosixi: windTriplets.length === 3 && WIND_TILES.includes(pair),
+            xiaosixi: windTriplets.length === 3 && isWindPair,
             pingwu: !allTriplet && sets.every(s => s.type === 'sequence')
         };
 
         const shapeOrder = ['dasixi', 'dasanyuan', 'xiaosixi', 'qingyise', 'xiaosanyuan', 'hunyise', 'duiduihu', 'pingwu'];
-        let shape = shapeOrder.find(s => flags[s]) || null;
+        let shape = null;
+        for (const s of shapeOrder) {
+            if (flags[s]) { shape = s; break; }
+        }
         if (flags.ziyise) shape = 'ziyise';
 
         const breakdown = [];
@@ -530,9 +554,11 @@
             if (windTriplets.includes(ctx.seatWind)) breakdown.push('menfengke');
             dragonTriplets.forEach(() => breakdown.push('dragonke'));
         }
+
         if (ctx.isSelfDraw) breakdown.push('zimo');
 
-        return { total: breakdown.reduce((sum, id) => sum + FAN_NAMES[id].fan, 0), breakdown };
+        const total = breakdown.reduce((sum, id) => sum + FAN_NAMES[id].fan, 0);
+        return { total, breakdown };
     }
 
     function calculateBestScore(tiles14, ctx) {
@@ -541,42 +567,51 @@
             if (ctx.isSelfDraw) breakdown.push('zimo');
             return { total: breakdown.reduce((s, id) => s + FAN_NAMES[id].fan, 0), breakdown };
         }
+
         const decomps = findHandDecompositions(tiles14);
         if (decomps.length === 0) return null;
+
         let best = null;
         for (const d of decomps) {
-            const res = analyzeDecomposition(d, ctx);
-            if (!best || res.total > best.total) best = res;
+            const result = analyzeDecomposition(d, ctx);
+            if (!best || result.total > best.total) best = result;
         }
         return best;
     }
 
     function renderScore(tiles14, unmapped) {
         const scoreDisplay = document.getElementById('scoreDisplay');
+
         if (unmapped.length > 0) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span>`;
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span><br>請調整拍攝角度重試。`;
             return;
         }
+
         if (tiles14.length !== 14) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles14.length} 張牌，計番需要 14 張。</span><br>目前：${tiles14.join(', ') || '（無）'}`;
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles14.length} 張牌，計番需要完整 14 張。</span><br>目前偵測：${tiles14.join(', ') || '（無）'}`;
             return;
         }
-        const result = calculateBestScore(tiles14, { prevailingWind, seatWind, isSelfDraw });
+
+        const ctx = { prevailingWind, seatWind, isSelfDraw };
+        const result = calculateBestScore(tiles14, ctx);
+
         if (!result) {
-            scoreDisplay.innerHTML = `❌ <span class="error-text">組不成有效糊牌。</span><br>${tiles14.join(', ')}`;
+            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>偵測到：${tiles14.join(', ')}`;
             return;
         }
-        scoreDisplay.innerHTML = `
+
+        const html = `
             <div class="fan-total">總番數：${result.total} 番</div>
             <ul class="fan-list">
-                ${result.breakdown.map(id => `<li><span>${FAN_NAMES[id].cn}</span><span>${FAN_NAMES[id].fan} 番</span></li>`).join('')}
+                ${result.breakdown.map(id => `<li><span>${FAN_NAMES[id].cn} (${FAN_NAMES[id].en})</span><span>${FAN_NAMES[id].fan} 番</span></li>`).join('')}
             </ul>
-            <div class="tile-echo">偵測：${tiles14.join(' ')}</div>
+            <div class="tile-echo">偵測牌張：${tiles14.join(' ')}</div>
         `;
+        scoreDisplay.innerHTML = html;
     }
 
     // ============================================================
-    // Capture & Detect via Standard HTTP API
+    // 標準 HTTP POST 請求辨識
     // ============================================================
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
@@ -585,36 +620,50 @@
 
         canvas.width = 640;
         canvas.height = 480;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        scoreDisplay.innerHTML = "🔄 正在上傳分析...";
+        const ctx2d = canvas.getContext('2d');
+        ctx2d.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        scoreDisplay.innerHTML = "🔄 正在上傳並分析手牌...";
 
         canvas.toBlob(async (blob) => {
             try {
-                const uploadUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
-                const response = await fetch(uploadUrl, { method: 'POST', body: blob });
-                
-                if (!response.ok) throw new Error(`伺服器回應錯誤 (${response.status})`);
-                
+                const response = await fetch(`https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`, {
+                    method: 'POST',
+                    body: blob
+                });
+
+                if (!response.ok) {
+                    throw new Error(`伺服器回應錯誤 (${response.status})`);
+                }
+
                 const data = await response.json();
                 const predictions = data.predictions || [];
 
+                if (predictions.length === 0) {
+                    scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                    return;
+                }
+
+                const rawClasses = predictions.map(p => p.class);
                 const tiles14 = [];
                 const unmapped = [];
-                predictions.forEach(p => {
-                    const norm = normalizeTileClass(p.class);
+                rawClasses.forEach(raw => {
+                    const norm = normalizeTileClass(raw);
                     if (norm) tiles14.push(norm);
-                    else unmapped.push(p.class);
+                    else unmapped.push(raw);
                 });
 
                 renderScore(tiles14, unmapped);
+
             } catch (err) {
                 scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message}</span>`;
             }
         }, 'image/jpeg', 0.85);
     }
 
-    window.addEventListener('load', initCamera);
+    window.addEventListener('load', async () => {
+        await initCamera();
+    });
 </script>
 
 </body>

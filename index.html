@@ -213,8 +213,8 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    // ⚠️ 請確認此處已填入您真正的 Roboflow API Key（例如 "rf_xxxxxx"）
-    const API_KEY = "請填入您的API_Key";
+    // 已設定您的真實 Publishable API Key
+    const API_KEY = "rf_jHhGokaKDgVyqG5VhoryNtzXQiO1";
     const MODEL_ID = "mahjong-tile-scoring-3";
     const VERSION = "3";
 
@@ -239,11 +239,6 @@
     }
 
     async function captureAndDetect() {
-        if (API_KEY.includes("rf_jHhGokaKDgVyqG5VhoryNtzXQiO1")) {
-            document.getElementById('scoreDisplay').innerHTML = "❌ 錯誤：您尚未在程式碼中填入真實的 API Key！";
-            return;
-        }
-
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
         const scoreDisplay = document.getElementById('scoreDisplay');

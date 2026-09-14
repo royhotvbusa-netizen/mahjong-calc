@@ -361,6 +361,28 @@
         }
         .picker-tile:hover { background: #f1f5f9; }
 
+        .selected-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        .clear-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .clear-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
         .selected-box {
             background: rgba(0,0,0,0.2);
             border-radius: 6px;
@@ -576,7 +598,10 @@
         <div id="pickerBamboo" class="picker-grid" style="display:none;"></div>
         <div id="pickerDot" class="picker-grid" style="display:none;"></div>
 
-        <div style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">已選牌組 (點擊紅 × 可刪除)：</div>
+        <div class="selected-header">
+            <span style="font-size: 0.75rem; color: var(--text-sub);">已選牌組 (點擊紅 × 可刪除)：</span>
+            <button class="clear-btn" onclick="clearAllManualTiles()">🗑️ 清除全部</button>
+        </div>
         <div id="selectedTilesContainer" class="selected-box">
             <span style="color: #94a3b8; font-size: 0.75rem;">尚未選擇任何牌張</span>
         </div>
@@ -780,6 +805,12 @@
 
     function removeManualTile(index) {
         selectedManualTiles.splice(index, 1);
+        renderSelectedManualTiles();
+        evaluateManualHand();
+    }
+
+    function clearAllManualTiles() {
+        selectedManualTiles = [];
         renderSelectedManualTiles();
         evaluateManualHand();
     }
@@ -1055,7 +1086,6 @@
 
         const breakdown = [];
 
-        // 獨立計算並累加所有符合的牌型番數
         if (flags.ziyise) breakdown.push('ziyise');
         else {
             if (flags.dasixi) breakdown.push('dasixi');

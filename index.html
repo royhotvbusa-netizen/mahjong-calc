@@ -212,8 +212,8 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    // 請在此處填入您的 Roboflow 參數
-    const API_KEY = "請填入您的RoboflowAPI_Key"; 
+    // 請務必在此處填入您的真實 Roboflow API Key
+    const API_KEY = "請在此填入您的API_Key"; 
     const MODEL_ID = "mahjong-tile-scoring-3";
     const VERSION = "3";
 
@@ -264,14 +264,14 @@
 
                     const result = await response.json();
                     
-                    if (result && result.predictions) {
+                    if (result && result.predictions && result.predictions.length > 0) {
                         const detectedTiles = result.predictions.map(p => p.class);
-                        scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到牌張數：${detectedTiles.length} 張<br>• 內容：${detectedTiles.join(', ')}`;
+                        scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到牌張數：${detectedTiles.length} 張<br>• 牌型：${detectedTiles.join(', ')}`;
                     } else {
-                        scoreDisplay.innerHTML = "⚠️ 未能偵測到麻雀牌，請再試一次。";
+                        scoreDisplay.innerHTML = "⚠️ 未能偵測到麻雀牌，請確認 API Key 是否正確或調整拍攝角度。";
                     }
                 } catch (error) {
-                    scoreDisplay.innerHTML = "❌ 辨識連线失敗，請檢查網路或 API Key。";
+                    scoreDisplay.innerHTML = "❌ 連線失敗，請檢查網路或 API Key 設定。";
                 }
             };
         }, "image/jpeg", 0.8);

@@ -7,10 +7,8 @@
     <style>
         :root {
             --bg-color: #0b2e1e;
-            --card-bg: rgba(255, 255, 255, 0.08);
             --text-main: #ffffff;
             --text-sub: #cbd5e1;
-            --accent-color: #2e7d32;
         }
 
         body {
@@ -33,7 +31,7 @@
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            min-height: 80vh;
+            min-height: 85vh;
         }
 
         header {
@@ -73,30 +71,38 @@
         .camera-viewport {
             position: relative;
             width: 100%;
-            height: 220px;
+            height: 280px;
             margin: 20px 0;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.25);
-            border-radius: 12px;
-            overflow: hidden;
         }
 
-        /* 四角括號樣式 */
+        /* 即時相機視訊畫面 */
+        #cameraStream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 四角括號覆蓋層（置於相機畫面上方） */
         .corner-frame {
             position: absolute;
             width: 88%;
-            height: 100px;
+            height: 140px;
             box-sizing: border-box;
             pointer-events: none;
+            z-index: 2;
         }
 
         .corner-frame::before, .corner-frame::after {
             content: '';
             position: absolute;
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             border-color: #4ade80;
             border-style: solid;
             border-width: 4px;
@@ -121,8 +127,8 @@
         .bottom-corners::before, .bottom-corners::after {
             content: '';
             position: absolute;
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             border-color: #4ade80;
             border-style: solid;
             border-width: 4px;
@@ -144,22 +150,11 @@
             border-bottom-right-radius: 6px;
         }
 
-        /* 修正麻雀牌橫向排列顯示 */
-        .simulated-tiles {
-            display: flex;
-            gap: 2px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 3px 6px;
-            border-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            letter-spacing: 1px;
-        }
-
         .score-board {
             font-size: 1.1rem;
             font-weight: bold;
             margin-top: 10px;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             padding: 12px;
             border-radius: 8px;
         }
@@ -198,13 +193,11 @@
         <a class="menu-link">ⓘ 番數表</a>
     </header>
 
-    <!-- 取景框與括號 -->
+    <!-- 即時相機視訊與取景框 -->
     <div class="camera-viewport">
+        <video id="cameraStream" autoplay playsinline></video>
         <div class="corner-frame">
             <div class="bottom-corners"></div>
-        </div>
-        <div class="simulated-tiles">
-            <span style="font-size: 16px; color: #111;">🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫</span>
         </div>
     </div>
 
@@ -213,16 +206,52 @@
     </div>
 
     <div class="action-container">
-        <button class="capture-btn" onclick="triggerCapture()">
+        <button class="capture-btn" onclick="captureImage()">
             📷 影相
         </button>
     </div>
 </div>
 
+<canvas id="snapshotCanvas" style="display:none;"></canvas>
+
 <script>
-    function triggerCapture() {
-        alert("已觸發拍攝，正在辨識手牌...");
+    // 自動向瀏覽器請求開啟後置相機權限並顯示畫面
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { exact: "environment" } }, // 嘗試調用後置鏡頭
+                audio: false
+            });
+            const videoElement = document.getElementById('cameraStream');
+            videoElement.srcObject = stream;
+        } catch (err) {
+            // 如果後置鏡頭失敗，嘗試切換為任意可用相機（例如前置鏡頭或電腦視訊鏡頭）
+            try {
+                const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+                document.getElementById('cameraStream').srcObject = fallbackStream;
+            } catch (e) {
+                alert("無法存取相機，請確認是否已允許權限或使用 HTTPS 連線。");
+            }
+        }
     }
+
+    // 點擊影相按鈕時擷取畫面
+    function captureImage() {
+        const video = document.getElementById('cameraStream');
+        const canvas = document.getElementById('snapshotCanvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        alert("已成功擷取鏡頭畫面，準備進行牌面辨識！");
+    }
+
+    // 頁面載入後自動啟動相機
+    window.addEventListener('load', initCamera);
 </script>
 
 </body>

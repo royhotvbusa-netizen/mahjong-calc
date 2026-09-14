@@ -914,7 +914,7 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // iOS/Safari URLSearchParams Payload Construction
+    // 萬無一失版：使用 toBlob + FormData (Multipart) 發送，徹底避開 Safari / iOS CORS 與 Body 解析限制
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
@@ -941,50 +941,51 @@
 
         scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
-        try {
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-            const base64Data = dataUrl.split(',')[1];
-
-            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
-
-            const params = new URLSearchParams();
-            params.append("file", base64Data);
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: params
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP 錯誤碼 (${response.status})`);
-            }
-
-            const data = await response.json();
-            const predictions = data.predictions || [];
-
-            if (predictions.length === 0) {
-                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                scoreDisplay.innerHTML = "❌ 影像處理失敗，請重試。";
                 return;
             }
 
-            const rawClasses = predictions.map(p => p.class);
-            const tiles14 = [];
-            const unmapped = [];
-            rawClasses.forEach(raw => {
-                const norm = normalizeTileClass(raw);
-                if (norm) tiles14.push(norm);
-                else unmapped.push(raw);
-            });
+            try {
+                const formData = new FormData();
+                formData.append("file", blob, "hand.jpg");
 
-            renderScore(tiles14, unmapped);
+                const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
 
-        } catch (err) {
-            console.error("Detect Error:", err);
-            scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message || '連線失敗'}</span>`;
-        }
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤碼 (${response.status})`);
+                }
+
+                const data = await response.json();
+                const predictions = data.predictions || [];
+
+                if (predictions.length === 0) {
+                    scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                    return;
+                }
+
+                const rawClasses = predictions.map(p => p.class);
+                const tiles14 = [];
+                const unmapped = [];
+                rawClasses.forEach(raw => {
+                    const norm = normalizeTileClass(raw);
+                    if (norm) tiles14.push(norm);
+                    else unmapped.push(raw);
+                });
+
+                renderScore(tiles14, unmapped);
+
+            } catch (err) {
+                console.error("Detect Error:", err);
+                scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message || '連線失敗'}</span>`;
+            }
+        }, 'image/jpeg', 0.8);
     }
 
     window.addEventListener('load', async () => {

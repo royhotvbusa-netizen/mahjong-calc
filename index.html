@@ -668,10 +668,10 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    // 切換為 Roboflow Universe 96.7% mAP 高精準度模型
+    // 切換至自行融合數據集訓練的專屬高精準度模型 (mAP 92.8%)
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
-    const MODEL_ID = "mahjong-baq4s";
-    const VERSION = 83;
+    const MODEL_ID = "mahjong-baq4s-zhith-1";
+    const VERSION = 1;
 
     let mediaStream = null;
 
@@ -914,7 +914,7 @@
         document.getElementById('fullscreenCameraModal').style.display = 'none';
     }
 
-    // 對應 Universe 模型 (mahjong-baq4s/83) 標籤命名
+    // 對應融合資料集 mahjong-baq4s-zhith-1 的標籤規範
     const HONOR_ALIASES = {
         ew: 'E', east: 'E', eastwind: 'E',
         sw: 'S', south: 'S', southwind: 'S',
@@ -933,7 +933,6 @@
 
     function normalizeTileClass(raw) {
         if (!raw) return null;
-        // 清除所有空格與符號，統一轉成純小寫字串
         const s = String(raw).toLowerCase().replace(/[\s_\-]/g, '');
 
         if (HONOR_ALIASES[s]) return HONOR_ALIASES[s];

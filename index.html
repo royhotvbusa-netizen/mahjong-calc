@@ -725,6 +725,7 @@
     let currentMode = 'camera';
     function switchMode(mode) {
         currentMode = mode;
+        document.getElementById('modeModeCameraBtn')?.classList.toggle('active', mode === 'camera');
         document.getElementById('modeCameraBtn').classList.toggle('active', mode === 'camera');
         document.getElementById('modeManualBtn').classList.toggle('active', mode === 'manual');
         document.getElementById('cameraContainer').style.display = mode === 'camera' ? 'flex' : 'none';
@@ -1046,8 +1047,6 @@
         return Object.keys(counts).length === 13 && Object.values(counts).filter(c => c === 2).length === 1;
     }
 
-    const ABSORBS_WIND_DRAGON = ['shisanyao', 'ziyise', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan'];
-
     function analyzeDecomposition(decomp, ctx) {
         const { pair, sets } = decomp;
         const suitsUsed = new Set();
@@ -1224,7 +1223,7 @@
             formData.append("file", blob, "image.jpg");
 
             const xhr = new XMLHttpRequest();
-            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
+            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=20`;
 
             xhr.open("POST", apiUrl, true);
 
@@ -1253,12 +1252,12 @@
                         scoreDisplay.innerHTML = `❌ 解析回應失敗：${e.message}`;
                     }
                 } else {
-                    scoreDisplay.innerHTML = `❌ 伺服器錯誤 (HTTP ${xhr.status}): ${xhr.responseText || xhr.statusText}`;
+                    scoreDisplay.innerHTML = `❌ 伺服器回應錯誤 (HTTP ${xhr.status}): ${xhr.responseText || xhr.statusText}`;
                 }
             };
 
             xhr.onerror = function () {
-                scoreDisplay.innerHTML = `❌ 網路連線失敗。請確認 API Key 配額或網路設定。`;
+                scoreDisplay.innerHTML = `❌ 跨域或網路連線被封鎖 (CORS Error)。請確認 API Key 設定。`;
             };
 
             xhr.send(formData);

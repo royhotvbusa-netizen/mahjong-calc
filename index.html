@@ -920,7 +920,7 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // 原生輕量化版：不使用任何 SDK，直接以低解析度 (480px) 二進制 Blob POST Roboflow API
+    // iOS Safari CORS 絕殺版：使用 application/x-www-form-urlencoded 傳送純 Base64 字串
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
@@ -933,8 +933,8 @@
 
         scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
-        // 1. 強制設定為極低解析度 (480px 寬)，確保 RAM 佔用 < 10MB
-        const targetWidth = 480;
+        // 1. 等比例縮放至 640px，控制記憶體並加快傳輸
+        const targetWidth = 640;
         const aspectRatio = video.videoHeight / video.videoWidth;
         const targetHeight = Math.round(targetWidth * aspectRatio);
 
@@ -944,57 +944,53 @@
         const ctx2d = canvas.getContext('2d');
         ctx2d.drawImage(video, 0, 0, targetWidth, targetHeight);
 
-        // 2. 轉為 Blob 並發送 FormData，極速且零崩潰
-        canvas.toBlob(async (blob) => {
-            // 清理 Canvas 記憶體
+        try {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            const base64Data = dataUrl.split(',')[1];
+
+            // 2. 釋放 Canvas 記憶體
             ctx2d.clearRect(0, 0, canvas.width, canvas.height);
             canvas.width = 1;
             canvas.height = 1;
 
-            if (!blob) {
-                scoreDisplay.innerHTML = "❌ 影像處理失敗，請重試。";
+            // 3. 使用 application/x-www-form-urlencoded 並將 base64 字串作為 body 直傳 (Safari 最相容模式)
+            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: base64Data
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP 錯誤碼 (${response.status})`);
+            }
+
+            const data = await response.json();
+            const predictions = data.predictions || [];
+
+            if (predictions.length === 0) {
+                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
                 return;
             }
 
-            try {
-                const formData = new FormData();
-                formData.append("file", blob, "hand.jpg");
+            const rawClasses = predictions.map(p => p.class);
+            const tiles14 = [];
+            const unmapped = [];
+            rawClasses.forEach(raw => {
+                const norm = normalizeTileClass(raw);
+                if (norm) tiles14.push(norm);
+                else unmapped.push(raw);
+            });
 
-                const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
+            renderScore(tiles14, unmapped);
 
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤碼 (${response.status})`);
-                }
-
-                const data = await response.json();
-                const predictions = data.predictions || [];
-
-                if (predictions.length === 0) {
-                    scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
-                    return;
-                }
-
-                const rawClasses = predictions.map(p => p.class);
-                const tiles14 = [];
-                const unmapped = [];
-                rawClasses.forEach(raw => {
-                    const norm = normalizeTileClass(raw);
-                    if (norm) tiles14.push(norm);
-                    else unmapped.push(raw);
-                });
-
-                renderScore(tiles14, unmapped);
-
-            } catch (err) {
-                console.error("Detect Error:", err);
-                scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message || '連線失敗'}</span>`;
-            }
-        }, 'image/jpeg', 0.6);
+        } catch (err) {
+            console.error("Detect Error:", err);
+            scoreDisplay.innerHTML = `❌ <span class="error-text">請求失敗：${err.message || '連線失敗'}</span>`;
+        }
     }
 </script>
 

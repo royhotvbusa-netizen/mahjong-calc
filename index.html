@@ -407,18 +407,12 @@
         .selected-badge span { cursor: pointer; color: #ef4444; font-weight: bold; }
 
         .settings-panel {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
             padding: 10px;
             margin-bottom: 10px;
-            max-height: 220px;
+            max-height: 280px;
             overflow-y: auto;
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
         }
 
         .settings-item {
@@ -426,19 +420,26 @@
             justify-content: space-between;
             align-items: center;
             background: rgba(255,255,255,0.08);
-            padding: 4px 8px;
+            padding: 6px 8px;
             border-radius: 4px;
             font-size: 0.8rem;
+            margin-bottom: 4px;
         }
 
-        .settings-item input {
-            width: 40px;
+        .settings-item input[type="number"] {
+            width: 45px;
             text-align: center;
             padding: 2px;
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 4px;
             background: rgba(255,255,255,0.9);
             font-size: 0.8rem;
+        }
+
+        .settings-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
         }
 
         .context-panel {
@@ -460,15 +461,15 @@
 
         .context-label { color: var(--text-sub); }
 
-        .seg-group { display: flex; gap: 4px; }
+        .seg-group { display: flex; gap: 4px; flex-wrap: wrap; }
 
         .seg-btn {
             background: rgba(255,255,255,0.08);
             border: 1px solid rgba(255,255,255,0.15);
             color: var(--text-main);
             border-radius: 6px;
-            padding: 3px 9px;
-            font-size: 0.8rem;
+            padding: 3px 8px;
+            font-size: 0.78rem;
             cursor: pointer;
         }
 
@@ -573,8 +574,8 @@
     </div>
 
     <div class="settings-panel" id="settingsPanel" style="display: none;">
-        <div style="font-weight: bold; margin-bottom: 6px; font-size: 0.85rem; color: #4ade80;">番數設定 (修改後自動儲存)</div>
-        <div class="settings-grid" id="settingsContainer"></div>
+        <div style="font-weight: bold; margin-bottom: 8px; font-size: 0.85rem; color: #4ade80;">番數設定 (可勾選是否計算及修改番數)</div>
+        <div id="settingsContainer"></div>
     </div>
 
     <div class="camera-viewport" id="cameraContainer" onclick="openFullscreenCamera()">
@@ -590,11 +591,13 @@
             <button class="sub-tab-btn" onclick="switchPickerTab('character', this)">萬子</button>
             <button class="sub-tab-btn" onclick="switchPickerTab('bamboo', this)">索子</button>
             <button class="sub-tab-btn" onclick="switchPickerTab('dot', this)">筒子</button>
+            <button class="sub-tab-btn" onclick="switchPickerTab('flower', this)">花牌</button>
         </div>
         <div id="pickerHonor" class="picker-grid"></div>
         <div id="pickerCharacter" class="picker-grid" style="display:none;"></div>
         <div id="pickerBamboo" class="picker-grid" style="display:none;"></div>
         <div id="pickerDot" class="picker-grid" style="display:none;"></div>
+        <div id="pickerFlower" class="picker-grid" style="display:none;"></div>
 
         <div class="selected-header">
             <span style="font-size: 0.75rem; color: var(--text-sub);">已選牌組 (點擊紅 × 可刪除)：</span>
@@ -620,10 +623,28 @@
             <span id="prevailingWindDisplay" style="font-weight:bold;">圈風：東</span>
         </div>
         <div class="context-row">
-            <span class="context-label">自摸 / 出銃</span>
-            <div class="seg-group">
-                <button class="seg-btn active" id="ronBtn">出銃/食糊</button>
-                <button class="seg-btn" id="zimoBtn">自摸</button>
+            <span class="context-label">食糊狀態</span>
+            <div class="seg-group" id="winTypeGroup">
+                <button class="seg-btn active" data-wintype="normal">出銃/普通</button>
+                <button class="seg-btn" data-wintype="zimo">自摸</button>
+                <button class="seg-btn" data-wintype="robbingKan">搶槓</button>
+                <button class="seg-btn" data-wintype="doubleKan">連槓開花</button>
+            </div>
+        </div>
+        <div class="context-row">
+            <span class="context-label">特殊首巡</span>
+            <div class="seg-group" id="specialFirstRoundGroup">
+                <button class="seg-btn active" data-first="none">無</button>
+                <button class="seg-btn" data-first="tianhu">天糊</button>
+                <button class="seg-btn" data-first="dihu">地糊</button>
+                <button class="seg-btn" data-first="renhu">人糊</button>
+            </div>
+        </div>
+        <div class="context-row">
+            <span class="context-label">門前清</span>
+            <div class="seg-group" id="menzenGroup">
+                <button class="seg-btn active" data-menzen="false">否 (有吃/碰)</button>
+                <button class="seg-btn" data-menzen="true">是 (無吃/碰)</button>
             </div>
         </div>
     </div>
@@ -680,24 +701,44 @@
         await initCameraStream();
     });
 
+    // 擴充全方位香港麻雀番數設定
     const defaultFanConfig = {
-        shisanyao: { cn: '十三么', en: 'Thirteen Orphans', fan: 10 },
-        ziyise: { cn: '字一色', en: 'All Honors', fan: 10 },
-        dasixi: { cn: '大四喜', en: 'Big Four Winds', fan: 10 },
-        dasanyuan: { cn: '大三元', en: 'Big Three Dragons', fan: 8 },
-        xiaosixi: { cn: '小四喜', en: 'Little Four Winds', fan: 5 },
-        qingyise: { cn: '清一色', en: 'Full Flush', fan: 7 },
-        xiaosanyuan: { cn: '小三元', en: 'Little Three Dragons', fan: 4 },
-        hunyise: { cn: '混一色', en: 'Half Flush', fan: 3 },
-        duiduihu: { cn: '對對糊', en: 'All Triplets', fan: 3 },
-        pingwu: { cn: '平糊', en: 'Common Hand', fan: 1 },
-        quanfengke: { cn: '圈風刻', en: 'Prevailing Wind Triplet', fan: 1 },
-        menfengke: { cn: '門風刻', en: 'Seat Wind Triplet', fan: 1 },
-        dragonke: { cn: '龍牌刻', en: 'Dragon Triplet', fan: 1 },
-        zimo: { cn: '自摸', en: 'Self-Draw', fan: 1 }
+        hasFlowers: { cn: '計算花牌 (是否有花)', enabled: true, isToggleOnly: true },
+        dahuahu: { cn: '大花糊 (集齊8張花)', en: '8 Flowers Hand', fan: 8, enabled: true },
+        flowerFan: { cn: '花牌 (每張/正花)', en: 'Flower Tile', fan: 1, enabled: true },
+        
+        shisanyao: { cn: '十三么', en: 'Thirteen Orphans', fan: 10, enabled: true },
+        jiulianbaodeng: { cn: '九蓮寶燈', en: 'Nine Gates', fan: 10, enabled: true },
+        shibaluohan: { cn: '十八羅漢 (四槓)', en: 'Four Kans', fan: 10, enabled: true },
+        kankankou: { cn: '坎坎糊 (門清對對糊)', en: 'Four Concealed Triplets', fan: 10, enabled: true },
+        qingyaojiu: { cn: '清么九', en: 'All Terminals', fan: 10, enabled: true },
+        huayaojiu: { cn: '花么九', en: 'Terminals & Honors', fan: 5, enabled: true },
+        
+        tianhu: { cn: '天糊', en: 'Heavenly Hand', fan: 10, enabled: true },
+        dihu: { cn: '地糊', en: 'Earthly Hand', fan: 8, enabled: true },
+        renhu: { cn: '人糊', en: 'Human Hand', fan: 5, enabled: true },
+        
+        ziyise: { cn: '字一色', en: 'All Honors', fan: 10, enabled: true },
+        dasixi: { cn: '大四喜', en: 'Big Four Winds', fan: 10, enabled: true },
+        dasanyuan: { cn: '大三元', en: 'Big Three Dragons', fan: 8, enabled: true },
+        xiaosixi: { cn: '小四喜', en: 'Little Four Winds', fan: 5, enabled: true },
+        qingyise: { cn: '清一色', en: 'Full Flush', fan: 7, enabled: true },
+        xiaosanyuan: { cn: '小三元', en: 'Little Three Dragons', fan: 4, enabled: true },
+        hunyise: { cn: '混一色', en: 'Half Flush', fan: 3, enabled: true },
+        duiduihu: { cn: '對對糊', en: 'All Triplets', fan: 3, enabled: true },
+        pingwu: { cn: '平糊', en: 'Common Hand', fan: 1, enabled: true },
+        
+        menqianqing: { cn: '門前清', en: 'Concealed Hand', fan: 1, enabled: true },
+        robbingKan: { cn: '搶槓', en: 'Robbing a Kan', fan: 1, enabled: true },
+        doubleKan: { cn: '連槓開花', en: 'Consecutive Kan Flower', fan: 2, enabled: true },
+        
+        quanfengke: { cn: '圈風刻', en: 'Prevailing Wind', fan: 1, enabled: true },
+        menfengke: { cn: '門風刻', en: 'Seat Wind', fan: 1, enabled: true },
+        dragonke: { cn: '龍牌刻', en: 'Dragon Triplet', fan: 1, enabled: true },
+        zimo: { cn: '自摸', en: 'Self-Draw', fan: 1, enabled: true }
     };
 
-    let FAN_NAMES = JSON.parse(localStorage.getItem('hk_mahjong_fans')) || defaultFanConfig;
+    let FAN_NAMES = JSON.parse(localStorage.getItem('hk_mahjong_fans_v2')) || defaultFanConfig;
 
     function initSettingsUI() {
         const container = document.getElementById('settingsContainer');
@@ -705,14 +746,35 @@
         for (let key in FAN_NAMES) {
             const item = document.createElement('div');
             item.className = 'settings-item';
-            item.innerHTML = `<span>${FAN_NAMES[key].cn}</span><input type="number" id="fan_input_${key}" value="${FAN_NAMES[key].fan}" onchange="updateFanValue('${key}', this.value)">`;
+            
+            if (FAN_NAMES[key].isToggleOnly) {
+                item.innerHTML = `
+                    <span>${FAN_NAMES[key].cn}</span>
+                    <input type="checkbox" id="chk_${key}" ${FAN_NAMES[key].enabled ? 'checked' : ''} onchange="toggleRuleEnable('${key}', this.checked)">
+                `;
+            } else {
+                item.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="chk_${key}" ${FAN_NAMES[key].enabled ? 'checked' : ''} onchange="toggleRuleEnable('${key}', this.checked)">
+                        <span>${FAN_NAMES[key].cn}</span>
+                    </div>
+                    <input type="number" id="fan_input_${key}" value="${FAN_NAMES[key].fan}" onchange="updateFanValue('${key}', this.value)">
+                `;
+            }
             container.appendChild(item);
         }
     }
 
+    function toggleRuleEnable(key, isChecked) {
+        FAN_NAMES[key].enabled = isChecked;
+        localStorage.setItem('hk_mahjong_fans_v2', JSON.stringify(FAN_NAMES));
+        if (currentMode === 'manual') evaluateManualHand();
+    }
+
     function updateFanValue(key, val) {
         FAN_NAMES[key].fan = parseInt(val) || 0;
-        localStorage.setItem('hk_mahjong_fans', JSON.stringify(FAN_NAMES));
+        localStorage.setItem('hk_mahjong_fans_v2', JSON.stringify(FAN_NAMES));
+        if (currentMode === 'manual') evaluateManualHand();
     }
 
     function toggleSettingsPanel() {
@@ -757,6 +819,10 @@
             { label: '一筒', val: '1p' }, { label: '二筒', val: '2p' }, { label: '三筒', val: '3p' },
             { label: '四筒', val: '4p' }, { label: '五筒', val: '5p' }, { label: '六筒', val: '6p' },
             { label: '七筒', val: '7p' }, { label: '八筒', val: '8p' }, { label: '九筒', val: '9p' }
+        ],
+        flower: [
+            { label: '春', val: '1F' }, { label: '夏', val: '2F' }, { label: '秋', val: '3F' }, { label: '冬', val: '4F' },
+            { label: '梅', val: '1S' }, { label: '蘭', val: '2S' }, { label: '竹', val: '3S' }, { label: '菊', val: '4S' }
         ]
     };
 
@@ -778,7 +844,7 @@
     function switchPickerTab(category, btnElem) {
         document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
         btnElem.classList.add('active');
-        ['honor', 'character', 'bamboo', 'dot'].forEach(cat => {
+        ['honor', 'character', 'bamboo', 'dot', 'flower'].forEach(cat => {
             document.getElementById('picker' + cat.charAt(0).toUpperCase() + cat.slice(1)).style.display = (cat === category) ? 'grid' : 'none';
         });
     }
@@ -788,14 +854,12 @@
         'RD': '中', 'GD': '發', 'WD': '白',
         '1m': '一萬', '2m': '二萬', '3m': '三萬', '4m': '四萬', '5m': '五萬', '6m': '六萬', '7m': '七萬', '8m': '八萬', '9m': '九萬',
         '1s': '一索', '2s': '二索', '3s': '三索', '4s': '四索', '5s': '五索', '6s': '六索', '7s': '七索', '8s': '八索', '9s': '九索',
-        '1p': '一筒', '2p': '二筒', '3p': '三筒', '4p': '四筒', '5p': '五筒', '6p': '六筒', '7p': '七筒', '8p': '八筒', '9p': '九筒'
+        '1p': '一筒', '2p': '二筒', '3p': '三筒', '4p': '四筒', '5p': '五筒', '6p': '六筒', '7p': '七筒', '8p': '八筒', '9p': '九筒',
+        '1F': '春', '2F': '夏', '3F': '秋', '4F': '冬',
+        '1S': '梅', '2S': '蘭', '3S': '竹', '4S': '菊'
     };
 
     function addManualTile(val, label) {
-        if (selectedManualTiles.length >= 18) {
-            alert('手牌最多只能選擇 18 張（包含開槓）！');
-            return;
-        }
         selectedManualTiles.push(val);
         renderSelectedManualTiles();
         evaluateManualHand();
@@ -830,11 +894,12 @@
 
     function evaluateManualHand() {
         if (currentMode !== 'manual') return;
-        if (selectedManualTiles.length < 14) {
-            document.getElementById('scoreDisplay').innerHTML = `⚠️ <span class="warn-text">已選 ${selectedManualTiles.length} 張牌</span><br>食糊至少需要 14 張牌（如有開槓可為 15–18 張）。`;
+        const mainTiles = selectedManualTiles.filter(t => !/^[1-4][FS]$/.test(t));
+        if (mainTiles.length < 14) {
+            document.getElementById('scoreDisplay').innerHTML = `⚠️ <span class="warn-text">已選 ${mainTiles.length} 張正牌</span><br>食糊至少需要 14 張正牌（不含花牌）。`;
             return;
         }
-        const ctx = { prevailingWind, seatWind, isSelfDraw };
+        const ctx = { prevailingWind, seatWind, winType, specialFirstRound, isMenzen };
         const result = calculateBestScore(selectedManualTiles, ctx);
         if (!result) {
             document.getElementById('scoreDisplay').innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>已選：${selectedManualTiles.map(t => tileDisplayNames[t]).join(' ')}`;
@@ -847,7 +912,9 @@
     const WIND_NAME = { E: '東', S: '南', W: '西', N: '北' };
 
     let seatWind = 'E';
-    let isSelfDraw = false;
+    let winType = 'normal';
+    let specialFirstRound = 'none';
+    let isMenzen = false;
     let currentHand = 1;
     let prevailingWind = 'E';
 
@@ -871,17 +938,31 @@
         });
     });
 
-    document.getElementById('ronBtn').addEventListener('click', () => {
-        isSelfDraw = false;
-        document.getElementById('ronBtn').classList.add('active');
-        document.getElementById('zimoBtn').classList.remove('active');
-        if (currentMode === 'manual') evaluateManualHand();
+    document.querySelectorAll('#winTypeGroup .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#winTypeGroup .seg-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            winType = btn.dataset.wintype;
+            if (currentMode === 'manual') evaluateManualHand();
+        });
     });
-    document.getElementById('zimoBtn').addEventListener('click', () => {
-        isSelfDraw = true;
-        document.getElementById('zimoBtn').classList.add('active');
-        document.getElementById('ronBtn').classList.remove('active');
-        if (currentMode === 'manual') evaluateManualHand();
+
+    document.querySelectorAll('#specialFirstRoundGroup .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#specialFirstRoundGroup .seg-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            specialFirstRound = btn.dataset.first;
+            if (currentMode === 'manual') evaluateManualHand();
+        });
+    });
+
+    document.querySelectorAll('#menzenGroup .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#menzenGroup .seg-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            isMenzen = btn.dataset.menzen === 'true';
+            if (currentMode === 'manual') evaluateManualHand();
+        });
     });
 
     updateContext();
@@ -920,7 +1001,9 @@
         nw: 'N', north: 'N', northwind: 'N',
         rd: 'RD', red: 'RD', reddragon: 'RD',
         gd: 'GD', green: 'GD', greendragon: 'GD',
-        wd: 'WD', white: 'WD', whitedragon: 'WD'
+        wd: 'WD', white: 'WD', whitedragon: 'WD',
+        '1f': '1F', '2f': '2F', '3f': '3F', '4f': '4F',
+        '1s': '1S', '2s': '2S', '3s': '3S', '4s': '4S'
     };
 
     const SUIT_ALIASES = {
@@ -947,7 +1030,8 @@
     const HONOR_TILES = ['E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
     const WIND_TILES = ['E', 'S', 'W', 'N'];
     const DRAGON_TILES = ['RD', 'GD', 'WD'];
-    const TERMINAL_HONOR_SET = ['1m', '9m', '1s', '9s', '1p', '9p', 'E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
+    const TERMINAL_SET = ['1m', '9m', '1s', '9s', '1p', '9p'];
+    const TERMINAL_HONOR_SET = [...TERMINAL_SET, ...HONOR_TILES];
 
     const isHonor = t => HONOR_TILES.includes(t);
     const isSuited = t => /^[1-9][msp]$/.test(t);
@@ -970,14 +1054,12 @@
         return cur;
     }
 
-    // 依據相機/手動輸入的實際順序進行分解（順序優先）
     function decomposeMeldsOrdered(tiles) {
         if (tiles.length === 0) return [[]];
         const results = [];
         const first = tiles[0];
         const cnt = tiles.filter(t => t === first).length;
 
-        // 優先嘗試湊順子 (123)
         if (isSuited(first)) {
             const n = tileNum(first), suit = tileSuit(first);
             if (n <= 7) {
@@ -993,7 +1075,6 @@
             }
         }
 
-        // 次之嘗試湊刻子 (111)
         if (cnt >= 3) {
             const rest = removeTiles(tiles, [first, first, first]);
             if (rest !== null) {
@@ -1030,7 +1111,22 @@
         return Object.keys(counts).length === 13 && Object.values(counts).filter(c => c === 2).length === 1;
     }
 
-    function analyzeDecomposition(decomp, ctx) {
+    function isNineGates(tiles) {
+        if (tiles.length !== 14) return false;
+        const suits = new Set(tiles.map(tileSuit));
+        if (suits.size !== 1 || suits.has(null)) return false;
+        const nums = tiles.map(tileNum).sort((a,b) => a - b);
+        const target = [1,1,1,2,3,4,5,6,7,8,9,9,9];
+        let copy = [...nums];
+        for (let t of target) {
+            const idx = copy.indexOf(t);
+            if (idx === -1) return false;
+            copy.splice(idx, 1);
+        }
+        return copy.length === 1;
+    }
+
+    function analyzeDecomposition(decomp, ctx, mainTiles, flowerTiles) {
         const { pair, sets } = decomp;
         const suitsUsed = new Set();
         let allTriplet = true;
@@ -1054,6 +1150,9 @@
         const isDragonPair = DRAGON_TILES.includes(pair);
         const isWindPair = WIND_TILES.includes(pair);
 
+        const isAllTerminalsOnly = mainTiles.every(t => TERMINAL_SET.includes(t));
+        const isTerminalsAndHonors = mainTiles.every(t => TERMINAL_HONOR_SET.includes(t));
+
         const flags = {
             ziyise: suitCount === 0 && hasHonorAnywhere,
             qingyise: suitCount === 1 && !hasHonorAnywhere,
@@ -1063,53 +1162,97 @@
             xiaosanyuan: dragonTriplets.length === 2 && isDragonPair,
             dasixi: windTriplets.length === 4,
             xiaosixi: windTriplets.length === 3 && isWindPair,
-            pingwu: !allTriplet && sets.every(s => s.type === 'sequence')
+            pingwu: !allTriplet && sets.every(s => s.type === 'sequence'),
+            qingyaojiu: isAllTerminalsOnly,
+            huayaojiu: isTerminalsAndHonors && !isAllTerminalsOnly,
+            kankankou: allTriplet && ctx.isMenzen
         };
 
         const breakdown = [];
+        const addRule = (key) => {
+            if (FAN_NAMES[key] && FAN_NAMES[key].enabled) {
+                breakdown.push(key);
+            }
+        };
 
-        if (flags.ziyise) breakdown.push('ziyise');
+        // 特殊首巡
+        if (ctx.specialFirstRound === 'tianhu') addRule('tianhu');
+        else if (ctx.specialFirstRound === 'dihu') addRule('dihu');
+        else if (ctx.specialFirstRound === 'renhu') addRule('renhu');
+
+        if (flags.qingyaojiu) addRule('qingyaojiu');
+        else if (flags.huayaojiu) addRule('huayaojiu');
+
+        if (flags.ziyise) addRule('ziyise');
         else {
-            if (flags.dasixi) breakdown.push('dasixi');
-            else if (flags.xiaosixi) breakdown.push('xiaosixi');
+            if (flags.dasixi) addRule('dasixi');
+            else if (flags.xiaosixi) addRule('xiaosixi');
 
-            if (flags.dasanyuan) breakdown.push('dasanyuan');
-            else if (flags.xiaosanyuan) breakdown.push('xiaosanyuan');
+            if (flags.dasanyuan) addRule('dasanyuan');
+            else if (flags.xiaosanyuan) addRule('xiaosanyuan');
 
-            if (flags.qingyise) breakdown.push('qingyise');
-            else if (flags.hunyise) breakdown.push('hunyise');
+            if (flags.qingyise) addRule('qingyise');
+            else if (flags.hunyise) addRule('hunyise');
 
-            if (flags.duiduihu) breakdown.push('duiduihu');
-            if (flags.pingwu) breakdown.push('pingwu');
+            if (flags.kankankou) addRule('kankankou');
+            else if (flags.duiduihu) addRule('duiduihu');
+
+            if (flags.pingwu) addRule('pingwu');
         }
 
         const hasSpecialWindDragon = flags.ziyise || flags.dasixi || flags.xiaosixi || flags.dasanyuan || flags.xiaosanyuan;
 
-        // 清一色/大四喜/小四喜/字一色等不重複計算風牌/龍牌包攬番
         if (!hasSpecialWindDragon && !flags.qingyise) {
-            if (windTriplets.includes(ctx.prevailingWind)) breakdown.push('quanfengke');
-            if (windTriplets.includes(ctx.seatWind)) breakdown.push('menfengke');
-            dragonTriplets.forEach(() => breakdown.push('dragonke'));
+            if (windTriplets.includes(ctx.prevailingWind)) addRule('quanfengke');
+            if (windTriplets.includes(ctx.seatWind)) addRule('menfengke');
+            dragonTriplets.forEach(() => addRule('dragonke'));
         }
 
-        if (ctx.isSelfDraw) breakdown.push('zimo');
+        // 門前清 / 狀態
+        if (ctx.isMenzen && !flags.kankankou) addRule('menqianqing');
+        if (ctx.winType === 'zimo') addRule('zimo');
+        else if (ctx.winType === 'robbingKan') addRule('robbingKan');
+        else if (ctx.winType === 'doubleKan') addRule('doubleKan');
+
+        // 花牌計算
+        if (FAN_NAMES.hasFlowers && FAN_NAMES.hasFlowers.enabled) {
+            if (flowerTiles.length === 8) {
+                addRule('dahuahu');
+            } else {
+                flowerTiles.forEach(() => addRule('flowerFan'));
+            }
+        }
 
         const total = breakdown.reduce((sum, id) => sum + (FAN_NAMES[id] ? FAN_NAMES[id].fan : 0), 0);
         return { total, breakdown };
     }
 
-    function calculateBestScore(tiles, ctx) {
-        if (isThirteenOrphans(tiles)) {
-            const breakdown = ['shisanyao'];
-            if (ctx.isSelfDraw) breakdown.push('zimo');
+    function calculateBestScore(allTiles, ctx) {
+        const flowerTiles = allTiles.filter(t => /^[1-4][FS]$/.test(t));
+        const mainTiles = allTiles.filter(t => !/^[1-4][FS]$/.test(t));
+
+        const breakdown = [];
+        const addRule = (key) => {
+            if (FAN_NAMES[key] && FAN_NAMES[key].enabled) breakdown.push(key);
+        };
+
+        // 滿貫極限牌型判斷
+        if (isThirteenOrphans(mainTiles)) {
+            addRule('shisanyao');
+            if (ctx.winType === 'zimo') addRule('zimo');
             return { total: breakdown.reduce((s, id) => s + (FAN_NAMES[id] ? FAN_NAMES[id].fan : 0), 0), breakdown };
         }
 
-        const decomps = findHandDecompositions(tiles);
+        if (isNineGates(mainTiles)) {
+            addRule('jiulianbaodeng');
+            if (ctx.winType === 'zimo') addRule('zimo');
+            return { total: breakdown.reduce((s, id) => s + (FAN_NAMES[id] ? FAN_NAMES[id].fan : 0), 0), breakdown };
+        }
+
+        const decomps = findHandDecompositions(mainTiles);
         if (decomps.length === 0) return null;
 
-        // 優先採用順序解析的第一個有效組合
-        return analyzeDecomposition(decomps[0], ctx);
+        return analyzeDecomposition(decomps[0], ctx, mainTiles, flowerTiles);
     }
 
     function renderResultHTML(result, displayTiles) {
@@ -1117,9 +1260,9 @@
         const html = `
             <div class="fan-total">總番數：${result.total} 番</div>
             <ul class="fan-list">
-                ${result.breakdown.map(id => `<li><span>${FAN_NAMES[id] ? FAN_NAMES[id].cn : id} (${FAN_NAMES[id] ? FAN_NAMES[id].en : ''})</span><span>${FAN_NAMES[id] ? FAN_NAMES[id].fan : 0} 番</span></li>`).join('')}
+                ${result.breakdown.map(id => `<li><span>${FAN_NAMES[id] ? FAN_NAMES[id].cn : id} (${FAN_NAMES[id] && FAN_NAMES[id].en ? FAN_NAMES[id].en : ''})</span><span>${FAN_NAMES[id] ? FAN_NAMES[id].fan : 0} 番</span></li>`).join('')}
             </ul>
-            <div class="tile-echo">牌張（順序）：${displayTiles.join(' ')}</div>
+            <div class="tile-echo">牌張：${displayTiles.join(' ')}</div>
         `;
         scoreDisplay.innerHTML = html;
     }
@@ -1132,12 +1275,13 @@
             return;
         }
 
-        if (tiles.length < 14 || tiles.length > 18) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles.length} 張牌。</span><br>已將結果匯入「手動選牌」，請切換手動補齊/修正。`;
+        const mainTiles = tiles.filter(t => !/^[1-4][FS]$/.test(t));
+        if (mainTiles.length < 14) {
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${mainTiles.length} 張正牌。</span><br>已將結果匯入「手動選牌」，請切換手動補齊/修正。`;
             return;
         }
 
-        const ctx = { prevailingWind, seatWind, isSelfDraw };
+        const ctx = { prevailingWind, seatWind, winType, specialFirstRound, isMenzen };
         const result = calculateBestScore(tiles, ctx);
 
         if (!result) {

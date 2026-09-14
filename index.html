@@ -34,9 +34,7 @@
             min-height: 80vh;
         }
 
-        header {
-            margin-bottom: 4px;
-        }
+        header { margin-bottom: 4px; }
 
         .title-row {
             display: flex;
@@ -46,10 +44,7 @@
             font-weight: bold;
         }
 
-        .dropdown-icon {
-            font-size: 1rem;
-            color: var(--text-sub);
-        }
+        .dropdown-icon { font-size: 1rem; color: var(--text-sub); }
 
         .subtitle {
             font-size: 0.85rem;
@@ -105,21 +100,8 @@
             border-width: 3px;
         }
 
-        .corner-frame::before {
-            top: 0;
-            left: 0;
-            border-right: none;
-            border-bottom: none;
-            border-top-left-radius: 4px;
-        }
-
-        .corner-frame::after {
-            top: 0;
-            right: 0;
-            border-left: none;
-            border-bottom: none;
-            border-top-right-radius: 4px;
-        }
+        .corner-frame::before { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+        .corner-frame::after { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
 
         .bottom-corners::before, .bottom-corners::after {
             content: '';
@@ -131,32 +113,100 @@
             border-width: 3px;
         }
 
-        .bottom-corners::before {
-            bottom: 0;
-            left: 0;
-            border-right: none;
-            border-top: none;
-            border-bottom-left-radius: 4px;
+        .bottom-corners::before { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+        .bottom-corners::after { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+
+        .context-panel {
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
         }
 
-        .bottom-corners::after {
-            bottom: 0;
-            right: 0;
-            border-left: none;
-            border-top: none;
-            border-bottom-right-radius: 4px;
+        .context-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .context-row:last-child { margin-bottom: 0; }
+
+        .context-label { color: var(--text-sub); }
+
+        .seg-group { display: flex; gap: 4px; }
+
+        .seg-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 3px 9px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .seg-btn.active {
+            background-color: #22c55e;
+            color: #064e3b;
+            font-weight: bold;
+            border-color: #22c55e;
+        }
+
+        .hand-input {
+            width: 48px;
+            padding: 3px 6px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.9);
+            text-align: center;
         }
 
         .score-board {
             font-size: 1rem;
             font-weight: bold;
-            margin-top: 8px;
+            margin-top: 4px;
             background: rgba(255, 255, 255, 0.05);
             padding: 10px;
             border-radius: 8px;
-            line-height: 1.4;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .fan-total {
+            font-size: 1.3rem;
+            color: #4ade80;
+            margin-bottom: 6px;
+        }
+
+        .fan-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.88rem;
+            font-weight: normal;
+        }
+
+        .fan-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+        }
+
+        .fan-list li:last-child { border-bottom: none; }
+
+        .tile-echo {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-top: 8px;
             word-break: break-all;
         }
+
+        .warn-text { color: #fbbf24; }
+        .error-text { color: #f87171; }
 
         .action-container {
             display: flex;
@@ -199,8 +249,31 @@
         </div>
     </div>
 
+    <div class="context-panel">
+        <div class="context-row">
+            <span class="context-label">門風（座位）</span>
+            <div class="seg-group" id="seatWindGroup">
+                <button class="seg-btn active" data-wind="E">東</button>
+                <button class="seg-btn" data-wind="S">南</button>
+                <button class="seg-btn" data-wind="W">西</button>
+                <button class="seg-btn" data-wind="N">北</button>
+            </div>
+        </div>
+        <div class="context-row">
+            <span class="context-label">第 <input type="number" id="handNumber" class="hand-input" value="1" min="1" max="16"> 盤（自動推算圈風）</span>
+            <span id="prevailingWindDisplay" style="font-weight:bold;">圈風：東</span>
+        </div>
+        <div class="context-row">
+            <span class="context-label">自摸（相片無法判斷，請手動選擇）</span>
+            <div class="seg-group">
+                <button class="seg-btn active" id="ronBtn">出銃/食糊</button>
+                <button class="seg-btn" id="zimoBtn">自摸</button>
+            </div>
+        </div>
+    </div>
+
     <div class="score-board" id="scoreDisplay">
-        相機已就緒，請將麻雀對準框線，點擊「影相」
+        相機已就緒，請將 14 張牌（包括食糊嗰隻）對準框線，點擊「影相」
     </div>
 
     <div class="action-container">
@@ -217,6 +290,50 @@
     const MODEL_ID = "mahjong-tile-scoring-3";
     const VERSION = 3;
 
+    // ============================================================
+    // game context (門風 / 圈風 / 自摸)
+    // ============================================================
+    const WINDS = ['E', 'S', 'W', 'N'];
+    const WIND_NAME = { E: '東', S: '南', W: '西', N: '北' };
+
+    let seatWind = 'E';
+    let isSelfDraw = false;
+    let currentHand = 1;
+    let prevailingWind = 'E';
+
+    function updateContext() {
+        currentHand = Math.max(1, parseInt(document.getElementById('handNumber').value) || 1);
+        document.getElementById('handNumber').value = currentHand;
+        const windIndex = Math.floor((currentHand - 1) / 4) % 4;
+        prevailingWind = WINDS[windIndex];
+        document.getElementById('prevailingWindDisplay').innerText = `圈風：${WIND_NAME[prevailingWind]}`;
+    }
+    document.getElementById('handNumber').addEventListener('change', updateContext);
+
+    document.querySelectorAll('#seatWindGroup .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#seatWindGroup .seg-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            seatWind = btn.dataset.wind;
+        });
+    });
+
+    document.getElementById('ronBtn').addEventListener('click', () => {
+        isSelfDraw = false;
+        document.getElementById('ronBtn').classList.add('active');
+        document.getElementById('zimoBtn').classList.remove('active');
+    });
+    document.getElementById('zimoBtn').addEventListener('click', () => {
+        isSelfDraw = true;
+        document.getElementById('zimoBtn').classList.add('active');
+        document.getElementById('ronBtn').classList.remove('active');
+    });
+
+    updateContext();
+
+    // ============================================================
+    // camera
+    // ============================================================
     async function initCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -226,10 +343,7 @@
             document.getElementById('cameraStream').srcObject = stream;
         } catch (err) {
             try {
-                const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false
-                });
+                const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 document.getElementById('cameraStream').srcObject = fallbackStream;
             } catch (e) {
                 document.getElementById('scoreDisplay').innerText = "無法存取相機，請檢查權限設定。";
@@ -237,53 +351,340 @@
         }
     }
 
+    // ============================================================
+    // Tile class name normalization
+    // ---------------------------------------------------------------
+    // ⚠️ 重要：以下對應表是根據常見命名慣例「猜測」你的 Roboflow 模型
+    // 會回傳的 class 名稱（例如 "1wan" / "1m" / "east" / "red" 等）。
+    // 我沒有你實際模型的 class list，如果偵測後看到「無法辨識的牌」
+    // 訊息，代表模型的實際 class 名稱跟這裡對不上，請把 console 印出
+    // 的原始 class 名稱告訴我，我再幫你把對應表填正確。
+    // ============================================================
+    const HONOR_ALIASES = {
+        east: 'E', dong: 'E',
+        south: 'S', nan: 'S',
+        west: 'W', xi: 'W',
+        north: 'N', bei: 'N',
+        red: 'RD', zhong: 'RD', reddragon: 'RD',
+        green: 'GD', fa: 'GD', greendragon: 'GD',
+        white: 'WD', bai: 'WD', whitedragon: 'WD', baiban: 'WD', blank: 'WD'
+    };
+
+    const SUIT_ALIASES = {
+        wan: 'm', man: 'm', character: 'm', characters: 'm', char: 'm', m: 'm',
+        tiao: 's', suo: 's', sou: 's', bamboo: 's', bam: 's', s: 's',
+        tong: 'p', pin: 'p', dot: 'p', dots: 'p', circle: 'p', p: 'p'
+    };
+
+    function normalizeTileClass(raw) {
+        if (!raw) return null;
+        const s = String(raw).toLowerCase().replace(/[\s_\-]/g, '');
+        if (HONOR_ALIASES[s]) return HONOR_ALIASES[s];
+
+        let m = s.match(/^(\d)([a-z]+)$/);
+        if (m && SUIT_ALIASES[m[2]]) return `${m[1]}${SUIT_ALIASES[m[2]]}`;
+
+        m = s.match(/^([a-z]+)(\d)$/);
+        if (m && SUIT_ALIASES[m[1]]) return `${m[2]}${SUIT_ALIASES[m[1]]}`;
+
+        return null;
+    }
+
+    // ============================================================
+    // Tile helpers
+    // ============================================================
+    const HONOR_TILES = ['E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
+    const WIND_TILES = ['E', 'S', 'W', 'N'];
+    const DRAGON_TILES = ['RD', 'GD', 'WD'];
+    const TERMINAL_HONOR_SET = ['1m', '9m', '1s', '9s', '1p', '9p', 'E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
+
+    const isHonor = t => HONOR_TILES.includes(t);
+    const isSuited = t => /^[1-9][msp]$/.test(t);
+    const tileSuit = t => isSuited(t) ? t[1] : null;
+    const tileNum = t => isSuited(t) ? parseInt(t[0], 10) : null;
+
+    function tileSortKey(t) {
+        if (isSuited(t)) {
+            const order = { m: 0, s: 1, p: 2 };
+            return order[tileSuit(t)] * 10 + tileNum(t);
+        }
+        const order = { E: 100, S: 101, W: 102, N: 103, RD: 104, GD: 105, WD: 106 };
+        return order[t] ?? 200;
+    }
+    const sortTiles = tiles => [...tiles].sort((a, b) => tileSortKey(a) - tileSortKey(b));
+
+    function removeOne(arr, tile) {
+        const idx = arr.indexOf(tile);
+        if (idx === -1) return null;
+        const copy = [...arr];
+        copy.splice(idx, 1);
+        return copy;
+    }
+    function removeTiles(arr, list) {
+        let cur = arr;
+        for (const t of list) {
+            cur = removeOne(cur, t);
+            if (cur === null) return null;
+        }
+        return cur;
+    }
+
+    // Recursively decompose a sorted tile array into triplets/sequences.
+    // Returns an array of decompositions, each an array of {type, tile} melds.
+    function decomposeMelds(tiles) {
+        if (tiles.length === 0) return [[]];
+        const results = [];
+        const first = tiles[0];
+        const cnt = tiles.filter(t => t === first).length;
+
+        if (cnt >= 3) {
+            const rest = removeTiles(tiles, [first, first, first]);
+            if (rest !== null) {
+                for (const sub of decomposeMelds(sortTiles(rest))) {
+                    results.push([{ type: 'triplet', tile: first }, ...sub]);
+                }
+            }
+        }
+
+        if (isSuited(first)) {
+            const n = tileNum(first), suit = tileSuit(first);
+            if (n <= 7) {
+                const t2 = `${n + 1}${suit}`, t3 = `${n + 2}${suit}`;
+                if (tiles.includes(t2) && tiles.includes(t3)) {
+                    const rest = removeTiles(tiles, [first, t2, t3]);
+                    if (rest !== null) {
+                        for (const sub of decomposeMelds(sortTiles(rest))) {
+                            results.push([{ type: 'sequence', tile: first }, ...sub]);
+                        }
+                    }
+                }
+            }
+        }
+        return results;
+    }
+
+    function findHandDecompositions(tiles14) {
+        const distinct = [...new Set(tiles14)];
+        const decomps = [];
+        for (const pairTile of distinct) {
+            const count = tiles14.filter(t => t === pairTile).length;
+            if (count < 2) continue;
+            const remaining = removeTiles(tiles14, [pairTile, pairTile]);
+            if (remaining === null) continue;
+            const meldOptions = decomposeMelds(sortTiles(remaining));
+            for (const sets of meldOptions) {
+                if (sets.length === 4) decomps.push({ pair: pairTile, sets });
+            }
+        }
+        return decomps;
+    }
+
+    function isThirteenOrphans(tiles14) {
+        if (tiles14.some(t => !TERMINAL_HONOR_SET.includes(t))) return false;
+        const counts = {};
+        tiles14.forEach(t => counts[t] = (counts[t] || 0) + 1);
+        const uniqueTypes = Object.keys(counts);
+        if (uniqueTypes.length !== 13) return false;
+        const pairs = Object.values(counts).filter(c => c === 2).length;
+        const singles = Object.values(counts).filter(c => c === 1).length;
+        return pairs === 1 && singles === 12;
+    }
+
+    // ============================================================
+    // Fan calculation
+    // ============================================================
+    // Shape fans are mutually exclusive - only the highest-value one applies.
+    // ABSORBS: shapes that already imply the wind/dragon triplet fans, so we
+    // don't double-count a triplet that's already part of a named big shape.
+    const ABSORBS_WIND_DRAGON = ['shisanyao', 'ziyise', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan', 'qingyise'];
+
+    const FAN_NAMES = {
+        shisanyao: { cn: '十三么', en: 'Thirteen Orphans', fan: 10 },
+        ziyise: { cn: '字一色', en: 'All Honors', fan: 10 },
+        dasixi: { cn: '大四喜', en: 'Big Four Winds', fan: 10 },
+        dasanyuan: { cn: '大三元', en: 'Big Three Dragons', fan: 8 },
+        xiaosixi: { cn: '小四喜', en: 'Little Four Winds', fan: 5 },
+        qingyise: { cn: '清一色', en: 'Full Flush', fan: 7 },
+        xiaosanyuan: { cn: '小三元', en: 'Little Three Dragons', fan: 4 },
+        hunyise: { cn: '混一色', en: 'Half Flush', fan: 3 },
+        duiduihu: { cn: '對對糊', en: 'All Triplets', fan: 3 },
+        pingwu: { cn: '平糊', en: 'Common Hand', fan: 1 },
+        quanfengke: { cn: '圈風刻', en: 'Prevailing Wind Triplet', fan: 1 },
+        menfengke: { cn: '門風刻', en: 'Seat Wind Triplet', fan: 1 },
+        dragonke: { cn: '龍牌刻', en: 'Dragon Triplet', fan: 1 },
+        zimo: { cn: '自摸', en: 'Self-Draw', fan: 1 }
+    };
+
+    function analyzeDecomposition(decomp, ctx) {
+        const { pair, sets } = decomp;
+        const suitsUsed = new Set();
+        let allTriplet = true;
+        const dragonTriplets = [];
+        const windTriplets = [];
+
+        sets.forEach(s => {
+            if (s.type === 'sequence') {
+                allTriplet = false;
+                suitsUsed.add(tileSuit(s.tile));
+            } else {
+                if (isSuited(s.tile)) suitsUsed.add(tileSuit(s.tile));
+                else if (DRAGON_TILES.includes(s.tile)) dragonTriplets.push(s.tile);
+                else if (WIND_TILES.includes(s.tile)) windTriplets.push(s.tile);
+            }
+        });
+        if (isSuited(pair)) suitsUsed.add(tileSuit(pair));
+
+        const hasHonorAnywhere = sets.some(s => isHonor(s.tile)) || isHonor(pair);
+        const suitCount = suitsUsed.size;
+        const isDragonPair = DRAGON_TILES.includes(pair);
+        const isWindPair = WIND_TILES.includes(pair);
+
+        const flags = {
+            ziyise: suitCount === 0 && hasHonorAnywhere,
+            qingyise: suitCount === 1 && !hasHonorAnywhere,
+            hunyise: suitCount === 1 && hasHonorAnywhere,
+            duiduihu: allTriplet,
+            dasanyuan: dragonTriplets.length === 3,
+            xiaosanyuan: dragonTriplets.length === 2 && isDragonPair,
+            dasixi: windTriplets.length === 4,
+            xiaosixi: windTriplets.length === 3 && isWindPair,
+            pingwu: !allTriplet && sets.every(s => s.type === 'sequence')
+        };
+
+        // pick the single highest-value applicable shape
+        const shapeOrder = ['dasixi', 'dasanyuan', 'xiaosixi', 'qingyise', 'xiaosanyuan', 'hunyise', 'duiduihu', 'pingwu'];
+        let shape = null;
+        for (const s of shapeOrder) {
+            if (flags[s]) { shape = s; break; }
+        }
+        if (flags.ziyise) shape = 'ziyise'; // all-honors always wins over everything else here
+
+        const breakdown = [];
+        if (shape) breakdown.push(shape);
+
+        if (!ABSORBS_WIND_DRAGON.includes(shape)) {
+            if (windTriplets.includes(ctx.prevailingWind)) breakdown.push('quanfengke');
+            if (windTriplets.includes(ctx.seatWind) && ctx.seatWind !== ctx.prevailingWind) breakdown.push('menfengke');
+            else if (windTriplets.includes(ctx.seatWind) && ctx.seatWind === ctx.prevailingWind && !windTriplets.includes(ctx.prevailingWind)) breakdown.push('menfengke');
+            dragonTriplets.forEach(() => breakdown.push('dragonke'));
+        }
+
+        if (ctx.isSelfDraw) breakdown.push('zimo');
+
+        const total = breakdown.reduce((sum, id) => sum + FAN_NAMES[id].fan, 0);
+        return { total, breakdown };
+    }
+
+    function calculateBestScore(tiles14, ctx) {
+        if (isThirteenOrphans(tiles14)) {
+            const breakdown = ['shisanyao'];
+            if (ctx.isSelfDraw) breakdown.push('zimo');
+            return { total: breakdown.reduce((s, id) => s + FAN_NAMES[id].fan, 0), breakdown };
+        }
+
+        const decomps = findHandDecompositions(tiles14);
+        if (decomps.length === 0) return null;
+
+        let best = null;
+        for (const d of decomps) {
+            const result = analyzeDecomposition(d, ctx);
+            if (!best || result.total > best.total) best = result;
+        }
+        return best;
+    }
+
+    function renderScore(tiles14, unmapped) {
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        if (unmapped.length > 0) {
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span><br>請調整拍攝角度重試，或告知開發者實際的 class 名稱以修正對應表。`;
+            return;
+        }
+
+        if (tiles14.length !== 14) {
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles14.length} 張牌，計番需要完整 14 張（包含食糊嗰隻）。</span><br>目前偵測：${tiles14.join(', ') || '（無）'}`;
+            return;
+        }
+
+        const ctx = { prevailingWind, seatWind, isSelfDraw };
+        const result = calculateBestScore(tiles14, ctx);
+
+        if (!result) {
+            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌（4組+1對或十三么）。</span><br>偵測到：${tiles14.join(', ')}`;
+            return;
+        }
+
+        const cnItems = result.breakdown.map(id => `${FAN_NAMES[id].cn} ${FAN_NAMES[id].fan}番`);
+        const html = `
+            <div class="fan-total">總番數：${result.total} 番</div>
+            <ul class="fan-list">
+                ${result.breakdown.map(id => `<li><span>${FAN_NAMES[id].cn} (${FAN_NAMES[id].en})</span><span>${FAN_NAMES[id].fan} 番</span></li>`).join('')}
+            </ul>
+            <div class="tile-echo">偵測牌張：${tiles14.join(' ')}</div>
+        `;
+        scoreDisplay.innerHTML = html || '未有任何番種';
+        if (cnItems.length === 0) scoreDisplay.innerHTML = `<div class="fan-total">總番數：0 番</div><div class="tile-echo">偵測牌張：${tiles14.join(' ')}</div>`;
+    }
+
+    // ============================================================
+    // Capture + detect + score
+    // ============================================================
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
-        
-        // 縮小圖片尺寸以加快上傳速度並避免記憶體過載
+
         canvas.width = 640;
         canvas.height = 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+        const ctx2d = canvas.getContext('2d');
+        ctx2d.drawImage(video, 0, 0, canvas.width, canvas.height);
+
         scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
         canvas.toBlob(async (blob) => {
-            try {
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = async function () {
-                    try {
-                        const base64data = reader.result.split(',')[1];
-                        const uploadURL = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
-                        
-                        const response = await fetch(uploadURL, {
-                            method: "POST",
-                            body: base64data
-                        });
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = async function () {
+                try {
+                    const base64data = reader.result.split(',')[1];
+                    const uploadURL = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
 
-                        if (!response.ok) {
-                            throw new Error(`伺服器回應錯誤 (${response.status})：可能是 CORS 限制或 API 金鑰權限不足`);
-                        }
+                    const response = await fetch(uploadURL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: base64data
+                    });
 
-                        const result = await response.json();
-                        const predictions = result.predictions;
-
-                        if (predictions && predictions.length > 0) {
-                            const detectedTiles = predictions.map(p => p.class);
-                            scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到 ${detectedTiles.length} 張牌：${detectedTiles.join(', ')}`;
-                        } else {
-                            scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
-                        }
-                    } catch (fetchErr) {
-                        scoreDisplay.innerHTML = `❌ 請求失敗：${fetchErr.message}。<br><small style="color:#f87171;">提示：瀏覽器端直接呼叫 API 常受限於 CORS，建議改用後端轉發。</small>`;
+                    if (!response.ok) {
+                        throw new Error(`伺服器回應錯誤 (${response.status})`);
                     }
+
+                    const result = await response.json();
+                    const predictions = result.predictions || [];
+
+                    if (predictions.length === 0) {
+                        scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                        return;
+                    }
+
+                    const rawClasses = predictions.map(p => p.class);
+                    const tiles14 = [];
+                    const unmapped = [];
+                    rawClasses.forEach(raw => {
+                        const norm = normalizeTileClass(raw);
+                        if (norm) tiles14.push(norm);
+                        else unmapped.push(raw);
+                    });
+
+                    console.log('原始偵測 class：', rawClasses);
+                    console.log('轉換後牌碼：', tiles14, '無法辨識：', unmapped);
+
+                    renderScore(tiles14, unmapped);
+
+                } catch (fetchErr) {
+                    scoreDisplay.innerHTML = `❌ 請求失敗：${fetchErr.message}`;
                 }
-            } catch (error) {
-                scoreDisplay.innerHTML = `❌ 系統錯誤：${error.message || error}`;
-            }
+            };
         }, "image/jpeg", 0.8);
     }
 

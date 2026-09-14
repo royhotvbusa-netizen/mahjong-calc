@@ -950,14 +950,12 @@
         return cur;
     }
 
-    // 支援 3 張刻子或 4 張槓子拆解
     function decomposeMelds(tiles) {
         if (tiles.length === 0) return [[]];
         const results = [];
         const first = tiles[0];
         const cnt = tiles.filter(t => t === first).length;
 
-        // 4 張槓子
         if (cnt >= 4) {
             const rest = removeTiles(tiles, [first, first, first, first]);
             if (rest !== null) {
@@ -967,7 +965,6 @@
             }
         }
 
-        // 3 張刻子
         if (cnt >= 3) {
             const rest = removeTiles(tiles, [first, first, first]);
             if (rest !== null) {
@@ -977,7 +974,6 @@
             }
         }
 
-        // 順子
         if (isSuited(first)) {
             const n = tileNum(first), suit = tileSuit(first);
             if (n <= 7) {
@@ -1019,7 +1015,7 @@
         return Object.keys(counts).length === 13 && Object.values(counts).filter(c => c === 2).length === 1;
     }
 
-    const ABSORBS_WIND_DRAGON = ['shisanyao', 'ziyise', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan', 'qingyise'];
+    const ABSORBS_WIND_DRAGON = ['shisanyao', 'ziyise', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan'];
 
     function analyzeDecomposition(decomp, ctx) {
         const { pair, sets } = decomp;
@@ -1057,17 +1053,27 @@
             pingwu: !allTriplet && sets.every(s => s.type === 'sequence')
         };
 
-        const shapeOrder = ['dasixi', 'dasanyuan', 'xiaosixi', 'qingyise', 'xiaosanyuan', 'hunyise', 'duiduihu', 'pingwu'];
-        let shape = null;
-        for (const s of shapeOrder) {
-            if (flags[s]) { shape = s; break; }
-        }
-        if (flags.ziyise) shape = 'ziyise';
-
         const breakdown = [];
-        if (shape) breakdown.push(shape);
 
-        if (!ABSORBS_WIND_DRAGON.includes(shape)) {
+        // 獨立計算並累加所有符合的牌型番數
+        if (flags.ziyise) breakdown.push('ziyise');
+        else {
+            if (flags.dasixi) breakdown.push('dasixi');
+            else if (flags.xiaosixi) breakdown.push('xiaosixi');
+
+            if (flags.dasanyuan) breakdown.push('dasanyuan');
+            else if (flags.xiaosanyuan) breakdown.push('xiaosanyuan');
+
+            if (flags.qingyise) breakdown.push('qingyise');
+            else if (flags.hunyise) breakdown.push('hunyise');
+
+            if (flags.duiduihu) breakdown.push('duiduihu');
+            if (flags.pingwu) breakdown.push('pingwu');
+        }
+
+        const hasSpecialWindDragon = flags.ziyise || flags.dasixi || flags.xiaosixi || flags.dasanyuan || flags.xiaosanyuan;
+
+        if (!hasSpecialWindDragon) {
             if (windTriplets.includes(ctx.prevailingWind)) breakdown.push('quanfengke');
             if (windTriplets.includes(ctx.seatWind)) breakdown.push('menfengke');
             dragonTriplets.forEach(() => breakdown.push('dragonke'));

@@ -127,12 +127,14 @@
 
     // 核心計番邏輯
     function calculateMahjong() {
+        const output = document.getElementById('resultOutput');
+        output.style.display = 'block';
+
         if (selectedTiles.length !== 14) {
-            alert('請選擇剛好 14 張牌進行計番！');
+            output.innerHTML = `<span style="color: #b91c1c;"><strong>提示：</strong>目前已選 ${selectedTiles.length} 張牌，請選擇剛好 14 張牌再進行計番！</span>`;
             return;
         }
 
-        // 統計各牌張出現次數
         const counts = {};
         selectedTiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
 
@@ -150,7 +152,7 @@
             }
         }
 
-        // 2. 字一色檢測 (全為字牌)
+        // 2. 字一色檢測
         const honors = ['東', '南', '西', '北', '中', '發', '白'];
         const allHonors = selectedTiles.every(t => honors.includes(t));
         if (allHonors) {
@@ -195,7 +197,7 @@
             totalFan += 3;
         }
 
-        // 6. 中發白其中一刻 / 第二刻
+        // 6. 中發白刻子
         dragons.forEach(d => {
             if ((counts[d] || 0) >= 3) {
                 matchedFans.push({ name: `中發白刻子 (${d})`, fan: 1 });
@@ -203,15 +205,15 @@
             }
         });
 
-        // 7. 門風刻 / 圈風刻 (預設以東風為例，可依需求調整)
-        ['東'].forEach(w => {
+        // 7. 門風刻 / 圈風刻
+        winds.forEach(w => {
             if ((counts[w] || 0) >= 3) {
-                matchedFans.push({ name: '門風刻 / 圈風刻', fan: 1 });
+                matchedFans.push({ name: `風刻刻子 (${w})`, fan: 1 });
                 totalFan += 1;
             }
         });
 
-        // 8. 對對糊檢測 (4個刻子/槓子 + 1對眼)
+        // 8. 對對糊檢測
         let tripletCount = 0;
         for (let t in counts) {
             if (counts[t] >= 3) tripletCount++;
@@ -221,40 +223,33 @@
             totalFan += 3;
         }
 
-        // 9. 平糊檢測 (無字牌、無刻子)
+        // 9. 平糊檢測
         if (!hasHonor && tripletCount === 0 && totalFan === 0) {
             matchedFans.push({ name: '平糊', fan: 1 });
             totalFan += 1;
         }
 
-        // 若無對應特殊牌型，給予基本糊牌或無番
         if (matchedFans.length === 0) {
             matchedFans.push({ name: '雞糊 / 基本和', fan: 1 });
             totalFan += 1;
         }
 
-        // 輸出結果
-        const output = document.getElementById('resultOutput');
-        output.style.display = 'block';
-        let html = `<strong>點算 14 張牌完成！</strong><br><br>`;
-        html += `<ul>`;
+        let html = `<strong>點算 14 張牌完成！</strong><br><br><ul>`;
         matchedFans.forEach(f => {
             html += `<li>${f.name}：<strong>+${f.fan} 番</strong></li>`;
         });
-        html += `</ul>`;
-        html += `<hr style="border:0; border-top:1px solid #a7f3d0; margin:8px 0;">`;
+        html += `</ul><hr style="border:0; border-top:1px solid #a7f3d0; margin:8px 0;">`;
         html += `<strong>總計番數：${totalFan} 番</strong>`;
         output.innerHTML = html;
 
-        // 語音報番
         if ('speechSynthesis' in window) {
-            const speechText = `點算完成，總共 ${totalFan} 番`;
-            const utterance = new SpeechSynthesisUtterance(speechText);
+            const utterance = new SpeechSynthesisUtterance(`點算完成，總共 ${totalFan} 番`);
             utterance.lang = 'zh-HK';
             window.speechSynthesis.speak(utterance);
         }
     }
 
+    // 確實綁定按鈕點擊事件
     document.getElementById('calculateBtn').onclick = calculateMahjong;
 
     initPickers();

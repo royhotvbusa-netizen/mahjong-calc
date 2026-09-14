@@ -610,7 +610,7 @@
     }
 
     // ============================================================
-    // Capture + detect + score (Fixed CORS with JSON body)
+    // Capture + detect + score (CORS Proxy added)
     // ============================================================
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
@@ -630,7 +630,8 @@
             reader.onloadend = async function () {
                 try {
                     const base64data = reader.result.split(',')[1];
-                    const uploadURL = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
+                    const targetUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
+                    const uploadURL = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
                     const response = await fetch(uploadURL, {
                         method: "POST",

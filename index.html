@@ -1,4 +1,4 @@
-// 針對 Safari / iOS 優化的 Base64 POST 請求 (避開 CORS Preflight 阻擋)
+// iOS / Safari 專用萬無一失版：以 URLSearchParams 傳送 POST
 async function captureAndDetect() {
     const scoreDisplay = document.getElementById('scoreDisplay');
     const video = document.getElementById('cameraStream');
@@ -9,6 +9,7 @@ async function captureAndDetect() {
         return;
     }
 
+    // 1. 等比例壓縮至 1024px 內，避免圖片過大
     const maxDim = 1024;
     let targetWidth = video.videoWidth;
     let targetHeight = video.videoHeight;
@@ -29,15 +30,19 @@ async function captureAndDetect() {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
         const base64Data = dataUrl.split(',')[1];
 
-        // 使用原本運作成功的 Publishable Key 搭配標準 Inference 端點
+        // 2. 將 API Key 置於 URL，並用 URLSearchParams 封裝純 Base64 作為 Body
         const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
+
+        // Safari 必須使用正統 Key-Value 格式（FormData 或 URLSearchParams）
+        const params = new URLSearchParams();
+        params.append("file", base64Data);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: base64Data
+            body: params
         });
 
         if (!response.ok) {

@@ -670,7 +670,6 @@
 <script>
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
     const MODEL_ID = "mahjong-tile-scoring";
-    // 切換回表現較佳的 Version 2 模型 (Valid Set mAP 58.3%)
     const VERSION = 5;
 
     let mediaStream = null;
@@ -914,14 +913,15 @@
         document.getElementById('fullscreenCameraModal').style.display = 'none';
     }
 
+    // 全面支援 Roboflow 的英文命名格式 (例如 9 Dot, 6 Bamboo, 1 Character, East Wind)
     const HONOR_ALIASES = {
-        east: 'E', dong: 'E',
-        south: 'S', nan: 'S',
-        west: 'W', xi: 'W',
-        north: 'N', bei: 'N',
-        red: 'RD', zhong: 'RD', reddragon: 'RD',
-        green: 'GD', fa: 'GD', greendragon: 'GD',
-        white: 'WD', bai: 'WD', whitedragon: 'WD', baiban: 'WD', blank: 'WD'
+        east: 'E', eastwind: 'E', dong: 'E',
+        south: 'S', southwind: 'S', nan: 'S',
+        west: 'W', westwind: 'W', xi: 'W',
+        north: 'N', northwind: 'N', bei: 'N',
+        red: 'RD', reddragon: 'RD', zhong: 'RD',
+        green: 'GD', greendragon: 'GD', fa: 'GD',
+        white: 'WD', whitedragon: 'WD', bai: 'WD', baiban: 'WD', blank: 'WD'
     };
 
     const SUIT_ALIASES = {
@@ -932,12 +932,16 @@
 
     function normalizeTileClass(raw) {
         if (!raw) return null;
+        // 清理所有空格、底線與連字號，轉為純小寫字串
         const s = String(raw).toLowerCase().replace(/[\s_\-]/g, '');
+
         if (HONOR_ALIASES[s]) return HONOR_ALIASES[s];
 
+        // 匹配 "9dot" -> 9p, "6bamboo" -> 6s, "1character" -> 1m
         let m = s.match(/^(\d)([a-z]+)$/);
         if (m && SUIT_ALIASES[m[2]]) return `${m[1]}${SUIT_ALIASES[m[2]]}`;
 
+        // 匹配 "dot9" -> 9p
         m = s.match(/^([a-z]+)(\d)$/);
         if (m && SUIT_ALIASES[m[1]]) return `${m[2]}${SUIT_ALIASES[m[1]]}`;
 
@@ -1166,96 +1170,82 @@
         renderResultHTML(result, tiles.map(t => tileDisplayNames[t] || t));
     }
 
-    function sendToRoboflow(blob, onComplete, onError) {
-        const formData = new FormData();
-        formData.append("file", blob, "image.jpg");
-
-        const xhr = new XMLHttpRequest();
-        // 加上 Cache-Busting 隨機時間戳 _t，防止瀏覽器快取舊的 API 回傳結果
-        const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=35&overlap=30&_t=${Date.now()}`;
-
-        xhr.open("POST", apiUrl, true);
-
-        xhr.onload = function () {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    onComplete(data.predictions || []);
-                } catch (e) {
-                    onError(`解析回應失敗：${e.message}`);
-                }
-            } else {
-                onError(`伺服器回應錯誤 (HTTP ${xhr.status}): ${xhr.responseText || xhr.statusText}`);
-            }
-        };
-
-        xhr.onerror = function () {
-            onError(`跨域或網路連線被封鎖 (CORS Error)。`);
-        };
-
-        xhr.send(formData);
+    function deduplicatePredictions(preds) {
+        preds.sort((a, b) => a.x - b.x);
+        const result = [];
+        preds.forEach(p => {
+            const isDuplicate = result.some(r => Math.abs(r.x - p.x) < 25 && r.class === p.class);
+            if (!isDuplicate) result.push(p);
+        });
+        return result;
     }
 
     function processImageAndSend(video, scanBox) {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const canvas = document.getElementById('snapshotCanvas');
+        const ctx2d = canvas.getContext('2d');
 
         if (!video || !video.videoWidth) {
             scoreDisplay.innerHTML = "⚠️ 相機尚未準備好，請稍候再試。";
             return;
         }
 
-        scoreDisplay.innerHTML = "🔄 正在分析手牌...";
+        scoreDisplay.innerHTML = "🔄 正在進行 3 段式高解析分析...";
 
-        const videoWidth = video.videoWidth;
-        const videoHeight = video.videoHeight;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
 
-        let cropX = 0, cropY = 0, cropW = videoWidth, cropH = videoHeight;
-        if (scanBox) {
-            const videoRect = video.getBoundingClientRect();
-            const scanRect = scanBox.getBoundingClientRect();
-            if (videoRect.width > 0 && videoRect.height > 0) {
-                const scaleX = videoWidth / videoRect.width;
-                const scaleY = videoHeight / videoRect.height;
-                cropX = Math.max(0, (scanRect.left - videoRect.left) * scaleX);
-                cropY = Math.max(0, (scanRect.top - videoRect.top) * scaleY);
-                cropW = Math.min(videoWidth - cropX, scanRect.width * scaleX);
-                cropH = Math.min(videoHeight - cropY, scanRect.height * scaleY);
-            }
-        }
+        const slices = [
+            { x: 0, w: vw * 0.45 },
+            { x: vw * 0.28, w: vw * 0.44 },
+            { x: vw * 0.55, w: vw * 0.45 }
+        ];
 
-        canvas.width = Math.max(1, cropW);
-        canvas.height = Math.max(1, cropH);
+        let allPredictions = [];
+        let completed = 0;
 
-        const ctx2d = canvas.getContext('2d');
-        ctx2d.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+        slices.forEach((slice) => {
+            canvas.width = slice.w;
+            canvas.height = vh;
+            ctx2d.drawImage(video, slice.x, 0, slice.w, vh, 0, 0, slice.w, vh);
 
-        canvas.toBlob((blob) => {
-            if (!blob) {
-                scoreDisplay.innerHTML = "❌ 圖片處理失敗，請重試。";
-                return;
-            }
-
-            sendToRoboflow(blob, (predictions) => {
-                if (predictions.length > 0) {
-                    handlePredictions(predictions);
-                } else {
-                    scoreDisplay.innerHTML = "🔄 切換為全區域分析中...";
-                    canvas.width = videoWidth;
-                    canvas.height = videoHeight;
-                    ctx2d.drawImage(video, 0, 0, videoWidth, videoHeight);
-                    canvas.toBlob((fullBlob) => {
-                        sendToRoboflow(fullBlob, (fullPredictions) => {
-                            if (fullPredictions.length === 0) {
-                                scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請切換至手動選牌。";
-                                return;
-                            }
-                            handlePredictions(fullPredictions);
-                        }, (err) => scoreDisplay.innerHTML = `❌ ${err}`);
-                    }, 'image/jpeg', 0.90);
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    completed++;
+                    if (completed === slices.length) handlePredictions(deduplicatePredictions(allPredictions));
+                    return;
                 }
-            }, (err) => scoreDisplay.innerHTML = `❌ ${err}`);
-        }, 'image/jpeg', 0.90);
+
+                const formData = new FormData();
+                formData.append("file", blob, "image.jpg");
+
+                const xhr = new XMLHttpRequest();
+                const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=25&overlap=30&_t=${Date.now()}`;
+
+                xhr.open("POST", apiUrl, true);
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            const preds = data.predictions || [];
+                            preds.forEach(p => p.x += slice.x);
+                            allPredictions = allPredictions.concat(preds);
+                        } catch (e) {}
+                    }
+                    completed++;
+
+                    if (completed === slices.length) {
+                        const deduped = deduplicatePredictions(allPredictions);
+                        handlePredictions(deduped);
+                    }
+                };
+                xhr.onerror = function() {
+                    completed++;
+                    if (completed === slices.length) handlePredictions(deduplicatePredictions(allPredictions));
+                };
+                xhr.send(formData);
+            }, 'image/jpeg', 0.95);
+        });
     }
 
     function handlePredictions(predictions) {

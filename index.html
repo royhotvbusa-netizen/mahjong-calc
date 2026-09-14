@@ -242,8 +242,9 @@
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
         
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
+        // 縮小圖片尺寸以加快上傳速度並避免記憶體過載
+        canvas.width = 640;
+        canvas.height = 480;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
@@ -254,33 +255,36 @@
                 const reader = new FileReader();
                 reader.readAsDataURL(blob);
                 reader.onloadend = async function () {
-                    const base64data = reader.result.split(',')[1];
-                    
-                    const uploadURL = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
-                    
-                    const response = await fetch(uploadURL, {
-                        method: "POST",
-                        body: base64data
-                    });
+                    try {
+                        const base64data = reader.result.split(',')[1];
+                        const uploadURL = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`;
+                        
+                        const response = await fetch(uploadURL, {
+                            method: "POST",
+                            body: base64data
+                        });
 
-                    if (!response.ok) {
-                        throw new Error(`API 錯誤: ${response.status} ${response.statusText}`);
-                    }
+                        if (!response.ok) {
+                            throw new Error(`伺服器回應錯誤 (${response.status})：可能是 CORS 限制或 API 金鑰權限不足`);
+                        }
 
-                    const result = await response.json();
-                    const predictions = result.predictions;
+                        const result = await response.json();
+                        const predictions = result.predictions;
 
-                    if (predictions && predictions.length > 0) {
-                        const detectedTiles = predictions.map(p => p.class);
-                        scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到 ${detectedTiles.length} 張牌：${detectedTiles.join(', ')}`;
-                    } else {
-                        scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                        if (predictions && predictions.length > 0) {
+                            const detectedTiles = predictions.map(p => p.class);
+                            scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到 ${detectedTiles.length} 張牌：${detectedTiles.join(', ')}`;
+                        } else {
+                            scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                        }
+                    } catch (fetchErr) {
+                        scoreDisplay.innerHTML = `❌ 請求失敗：${fetchErr.message}。<br><small style="color:#f87171;">提示：瀏覽器端直接呼叫 API 常受限於 CORS，建議改用後端轉發。</small>`;
                     }
                 }
             } catch (error) {
-                scoreDisplay.innerHTML = `❌ 辨識錯誤：${error.message || error}`;
+                scoreDisplay.innerHTML = `❌ 系統錯誤：${error.message || error}`;
             }
-        }, "image/jpeg", 0.85);
+        }, "image/jpeg", 0.8);
     }
 
     window.addEventListener('load', async () => {

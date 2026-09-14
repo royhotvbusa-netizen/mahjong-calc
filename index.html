@@ -21,7 +21,7 @@
         .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 6px; }
         .picker-tile { background: white; border: 1px solid #cbd5e1; padding: 8px 4px; text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         .picker-tile:hover { background: #f1f5f9; border-color: #94a3b8; }
-        .result-box { margin-top: 15px; padding: 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; color: #065f46; }
+        .result-box { margin-top: 15px; padding: 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; color: #065f46; font-size: 0.95rem; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -65,7 +65,6 @@
 </div>
 
 <script>
-    // 牌張定義
     const tilesData = {
         honor: ['東', '南', '西', '北', '中', '發', '白'],
         character: ['一萬', '二萬', '三萬', '四萬', '五萬', '六萬', '七萬', '八萬', '九萬'],
@@ -75,7 +74,6 @@
 
     let selectedTiles = [];
 
-    // 初始化手動選牌按鈕
     function initPickers() {
         for (let key in tilesData) {
             const container = document.getElementById('picker' + key.charAt(0).toUpperCase() + key.slice(1));
@@ -99,6 +97,10 @@
     }
 
     function addTile(tileName) {
+        if (selectedTiles.length >= 14) {
+            alert('一幅完整的廣東麻雀胡牌牌組為 14 張牌！');
+            return;
+        }
         selectedTiles.push(tileName);
         renderSelectedTiles();
     }
@@ -123,25 +125,138 @@
         });
     }
 
-    // 模擬計番與語音報番
-    document.getElementById('calculateBtn').onclick = function() {
-        const output = document.getElementById('resultOutput');
-        if (selectedTiles.length === 0) {
-            alert('請先選擇或辨識牌張！');
+    // 核心計番邏輯
+    function calculateMahjong() {
+        if (selectedTiles.length !== 14) {
+            alert('請選擇剛好 14 張牌進行計番！');
             return;
         }
+
+        // 統計各牌張出現次數
+        const counts = {};
+        selectedTiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
+
+        let matchedFans = [];
+        let totalFan = 0;
+
+        // 1. 十三么檢測
+        const yaojiu = ['一萬', '九萬', '一索', '九索', '一筒', '九筒', '東', '南', '西', '北', '中', '發', '白'];
+        let isThirteenOrphans = true;
+        if (Object.keys(counts).length === 13) {
+            yaojiu.forEach(y => { if (!counts[y]) isThirteenOrphans = false; });
+            if (Object.values(counts).some(c => c === 2) && isThirteenOrphans) {
+                matchedFans.push({ name: '十三么', fan: 13 });
+                totalFan += 13;
+            }
+        }
+
+        // 2. 字一色檢測 (全為字牌)
+        const honors = ['東', '南', '西', '北', '中', '發', '白'];
+        const allHonors = selectedTiles.every(t => honors.includes(t));
+        if (allHonors) {
+            matchedFans.push({ name: '字一色', fan: 13 });
+            totalFan += 13;
+        }
+
+        // 3. 大四喜 / 小四喜檢測
+        const winds = ['東', '南', '西', '北'];
+        let windTriplets = winds.filter(w => (counts[w] || 0) >= 3).length;
+        let windPairs = winds.filter(w => (counts[w] || 0) === 2).length;
+        if (windTriplets === 4) {
+            matchedFans.push({ name: '大四喜', fan: 13 });
+            totalFan += 13;
+        } else if (windTriplets === 3 && windPairs === 1) {
+            matchedFans.push({ name: '小四喜', fan: 10 });
+            totalFan += 10;
+        }
+
+        // 4. 大三元 / 小三元檢測
+        const dragons = ['中', '發', '白'];
+        let dragonTriplets = dragons.filter(d => (counts[d] || 0) >= 3).length;
+        let dragonPairs = dragons.filter(d => (counts[d] || 0) === 2).length;
+        if (dragonTriplets === 3) {
+            matchedFans.push({ name: '大三元', fan: 8 });
+            totalFan += 8;
+        } else if (dragonTriplets === 2 && dragonPairs === 1) {
+            matchedFans.push({ name: '小三元', fan: 5 });
+            totalFan += 5;
+        }
+
+        // 5. 清一色 / 混一色檢測
+        const suits = ['萬', '索', '筒'];
+        let presentSuits = suits.filter(s => selectedTiles.some(t => t.includes(s)));
+        let hasHonor = selectedTiles.some(t => honors.includes(t));
+
+        if (presentSuits.length === 1 && !hasHonor) {
+            matchedFans.push({ name: '清一色', fan: 7 });
+            totalFan += 7;
+        } else if (presentSuits.length === 1 && hasHonor) {
+            matchedFans.push({ name: '混一色', fan: 3 });
+            totalFan += 3;
+        }
+
+        // 6. 中發白其中一刻 / 第二刻
+        dragons.forEach(d => {
+            if ((counts[d] || 0) >= 3) {
+                matchedFans.push({ name: `中發白刻子 (${d})`, fan: 1 });
+                totalFan += 1;
+            }
+        });
+
+        // 7. 門風刻 / 圈風刻 (預設以東風為例，可依需求調整)
+        ['東'].forEach(w => {
+            if ((counts[w] || 0) >= 3) {
+                matchedFans.push({ name: '門風刻 / 圈風刻', fan: 1 });
+                totalFan += 1;
+            }
+        });
+
+        // 8. 對對糊檢測 (4個刻子/槓子 + 1對眼)
+        let tripletCount = 0;
+        for (let t in counts) {
+            if (counts[t] >= 3) tripletCount++;
+        }
+        if (tripletCount === 4) {
+            matchedFans.push({ name: '對對糊', fan: 3 });
+            totalFan += 3;
+        }
+
+        // 9. 平糊檢測 (無字牌、無刻子)
+        if (!hasHonor && tripletCount === 0 && totalFan === 0) {
+            matchedFans.push({ name: '平糊', fan: 1 });
+            totalFan += 1;
+        }
+
+        // 若無對應特殊牌型，給予基本糊牌或無番
+        if (matchedFans.length === 0) {
+            matchedFans.push({ name: '雞糊 / 基本和', fan: 1 });
+            totalFan += 1;
+        }
+
+        // 輸出結果
+        const output = document.getElementById('resultOutput');
         output.style.display = 'block';
-        output.innerHTML = `<strong>已點算牌張數：</strong> ${selectedTiles.length} 張<br><strong>初步判定：</strong> 手動點選模式運作正常，可依此對接您的廣東麻雀例行番數規則。`;
-        
-        // 語音合成報番
+        let html = `<strong>點算 14 張牌完成！</strong><br><br>`;
+        html += `<ul>`;
+        matchedFans.forEach(f => {
+            html += `<li>${f.name}：<strong>+${f.fan} 番</strong></li>`;
+        });
+        html += `</ul>`;
+        html += `<hr style="border:0; border-top:1px solid #a7f3d0; margin:8px 0;">`;
+        html += `<strong>總計番數：${totalFan} 番</strong>`;
+        output.innerHTML = html;
+
+        // 語音報番
         if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(`點算完成，共選取 ${selectedTiles.length} 張牌`);
+            const speechText = `點算完成，總共 ${totalFan} 番`;
+            const utterance = new SpeechSynthesisUtterance(speechText);
             utterance.lang = 'zh-HK';
             window.speechSynthesis.speak(utterance);
         }
-    };
+    }
 
-    // 初始化執行
+    document.getElementById('calculateBtn').onclick = calculateMahjong;
+
     initPickers();
 </script>
 

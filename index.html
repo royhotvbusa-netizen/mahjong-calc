@@ -353,12 +353,6 @@
 
     // ============================================================
     // Tile class name normalization
-    // ---------------------------------------------------------------
-    // ⚠️ 重要：以下對應表是根據常見命名慣例「猜測」你的 Roboflow 模型
-    // 會回傳的 class 名稱（例如 "1wan" / "1m" / "east" / "red" 等）。
-    // 我沒有你實際模型的 class list，如果偵測後看到「無法辨識的牌」
-    // 訊息，代表模型的實際 class 名稱跟這裡對不上，請把 console 印出
-    // 的原始 class 名稱告訴我，我再幫你把對應表填正確。
     // ============================================================
     const HONOR_ALIASES = {
         east: 'E', dong: 'E',
@@ -391,7 +385,7 @@
     }
 
     // ============================================================
-    // Tile helpers
+    // Tile helpers & Logic
     // ============================================================
     const HONOR_TILES = ['E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
     const WIND_TILES = ['E', 'S', 'W', 'N'];
@@ -429,8 +423,6 @@
         return cur;
     }
 
-    // Recursively decompose a sorted tile array into triplets/sequences.
-    // Returns an array of decompositions, each an array of {type, tile} melds.
     function decomposeMelds(tiles) {
         if (tiles.length === 0) return [[]];
         const results = [];
@@ -490,12 +482,6 @@
         return pairs === 1 && singles === 12;
     }
 
-    // ============================================================
-    // Fan calculation
-    // ============================================================
-    // Shape fans are mutually exclusive - only the highest-value one applies.
-    // ABSORBS: shapes that already imply the wind/dragon triplet fans, so we
-    // don't double-count a triplet that's already part of a named big shape.
     const ABSORBS_WIND_DRAGON = ['shisanyao', 'ziyise', 'dasixi', 'dasanyuan', 'xiaosixi', 'xiaosanyuan', 'qingyise'];
 
     const FAN_NAMES = {
@@ -551,13 +537,12 @@
             pingwu: !allTriplet && sets.every(s => s.type === 'sequence')
         };
 
-        // pick the single highest-value applicable shape
         const shapeOrder = ['dasixi', 'dasanyuan', 'xiaosixi', 'qingyise', 'xiaosanyuan', 'hunyise', 'duiduihu', 'pingwu'];
         let shape = null;
         for (const s of shapeOrder) {
             if (flags[s]) { shape = s; break; }
         }
-        if (flags.ziyise) shape = 'ziyise'; // all-honors always wins over everything else here
+        if (flags.ziyise) shape = 'ziyise';
 
         const breakdown = [];
         if (shape) breakdown.push(shape);
@@ -597,12 +582,12 @@
         const scoreDisplay = document.getElementById('scoreDisplay');
 
         if (unmapped.length > 0) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span><br>請調整拍攝角度重試，或告知開發者實際的 class 名稱以修正對應表。`;
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">有 ${unmapped.length} 張牌無法辨識：${unmapped.join(', ')}</span><br>請調整拍攝角度重試。`;
             return;
         }
 
         if (tiles14.length !== 14) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles14.length} 張牌，計番需要完整 14 張（包含食糊嗰隻）。</span><br>目前偵測：${tiles14.join(', ') || '（無）'}`;
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles14.length} 張牌，計番需要完整 14 張。</span><br>目前偵測：${tiles14.join(', ') || '（無）'}`;
             return;
         }
 
@@ -610,11 +595,10 @@
         const result = calculateBestScore(tiles14, ctx);
 
         if (!result) {
-            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌（4組+1對或十三么）。</span><br>偵測到：${tiles14.join(', ')}`;
+            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>偵測到：${tiles14.join(', ')}`;
             return;
         }
 
-        const cnItems = result.breakdown.map(id => `${FAN_NAMES[id].cn} ${FAN_NAMES[id].fan}番`);
         const html = `
             <div class="fan-total">總番數：${result.total} 番</div>
             <ul class="fan-list">
@@ -622,12 +606,11 @@
             </ul>
             <div class="tile-echo">偵測牌張：${tiles14.join(' ')}</div>
         `;
-        scoreDisplay.innerHTML = html || '未有任何番種';
-        if (cnItems.length === 0) scoreDisplay.innerHTML = `<div class="fan-total">總番數：0 番</div><div class="tile-echo">偵測牌張：${tiles14.join(' ')}</div>`;
+        scoreDisplay.innerHTML = html;
     }
 
     // ============================================================
-    // Capture + detect + score
+    // Capture + detect + score (Fixed CORS with JSON body)
     // ============================================================
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
@@ -651,8 +634,8 @@
 
                     const response = await fetch(uploadURL, {
                         method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: base64data
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: base64data })
                     });
 
                     if (!response.ok) {

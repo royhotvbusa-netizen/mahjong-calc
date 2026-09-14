@@ -668,7 +668,6 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    // 切換至自行融合數據集訓練的專屬高精準度模型 (mAP 92.8%)
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
     const MODEL_ID = "mahjong-baq4s-zhith-1";
     const VERSION = 1;
@@ -914,7 +913,6 @@
         document.getElementById('fullscreenCameraModal').style.display = 'none';
     }
 
-    // 對應融合資料集 mahjong-baq4s-zhith-1 的標籤規範
     const HONOR_ALIASES = {
         ew: 'E', east: 'E', eastwind: 'E',
         sw: 'S', south: 'S', southwind: 'S',
@@ -926,9 +924,9 @@
     };
 
     const SUIT_ALIASES = {
-        c: 'm', char: 'm', character: 'm', // C -> 萬 (m)
-        b: 's', bam: 's', bamboo: 's',       // B -> 索 (s)
-        d: 'p', dot: 'p'                    // D -> 筒 (p)
+        c: 'm', char: 'm', character: 'm',
+        b: 's', bam: 's', bamboo: 's',
+        d: 'p', dot: 'p'
     };
 
     function normalizeTileClass(raw) {
@@ -937,11 +935,9 @@
 
         if (HONOR_ALIASES[s]) return HONOR_ALIASES[s];
 
-        // 匹配 "1b" -> 1s, "9c" -> 9m, "5d" -> 5p
         let m = s.match(/^(\d)([a-z]+)$/);
         if (m && SUIT_ALIASES[m[2]]) return `${m[1]}${SUIT_ALIASES[m[2]]}`;
 
-        // 匹配 "b1" -> 1s
         m = s.match(/^([a-z]+)(\d)$/);
         if (m && SUIT_ALIASES[m[1]]) return `${m[2]}${SUIT_ALIASES[m[1]]}`;
 
@@ -957,16 +953,6 @@
     const isSuited = t => /^[1-9][msp]$/.test(t);
     const tileSuit = t => isSuited(t) ? t[1] : null;
     const tileNum = t => isSuited(t) ? parseInt(t[0], 10) : null;
-
-    function tileSortKey(t) {
-        if (isSuited(t)) {
-            const order = { m: 0, s: 1, p: 2 };
-            return order[tileSuit(t)] * 10 + tileNum(t);
-        }
-        const order = { E: 100, S: 101, W: 102, N: 103, RD: 104, GD: 105, WD: 106 };
-        return order[t] ?? 200;
-    }
-    const sortTiles = tiles => [...tiles].sort((a, b) => tileSortKey(a) - tileSortKey(b));
 
     function removeOne(arr, tile) {
         const idx = arr.indexOf(tile);
@@ -984,30 +970,14 @@
         return cur;
     }
 
-    function decomposeMelds(tiles) {
+    // 依據相機/手動輸入的實際順序進行分解（順序優先）
+    function decomposeMeldsOrdered(tiles) {
         if (tiles.length === 0) return [[]];
         const results = [];
         const first = tiles[0];
         const cnt = tiles.filter(t => t === first).length;
 
-        if (cnt >= 4) {
-            const rest = removeTiles(tiles, [first, first, first, first]);
-            if (rest !== null) {
-                for (const sub of decomposeMelds(sortTiles(rest))) {
-                    results.push([{ type: 'triplet', tile: first }, ...sub]);
-                }
-            }
-        }
-
-        if (cnt >= 3) {
-            const rest = removeTiles(tiles, [first, first, first]);
-            if (rest !== null) {
-                for (const sub of decomposeMelds(sortTiles(rest))) {
-                    results.push([{ type: 'triplet', tile: first }, ...sub]);
-                }
-            }
-        }
-
+        // 優先嘗試湊順子 (123)
         if (isSuited(first)) {
             const n = tileNum(first), suit = tileSuit(first);
             if (n <= 7) {
@@ -1015,13 +985,24 @@
                 if (tiles.includes(t2) && tiles.includes(t3)) {
                     const rest = removeTiles(tiles, [first, t2, t3]);
                     if (rest !== null) {
-                        for (const sub of decomposeMelds(sortTiles(rest))) {
+                        for (const sub of decomposeMeldsOrdered(rest)) {
                             results.push([{ type: 'sequence', tile: first }, ...sub]);
                         }
                     }
                 }
             }
         }
+
+        // 次之嘗試湊刻子 (111)
+        if (cnt >= 3) {
+            const rest = removeTiles(tiles, [first, first, first]);
+            if (rest !== null) {
+                for (const sub of decomposeMeldsOrdered(rest)) {
+                    results.push([{ type: 'triplet', tile: first }, ...sub]);
+                }
+            }
+        }
+
         return results;
     }
 
@@ -1033,7 +1014,7 @@
             if (count < 2) continue;
             const remaining = removeTiles(tiles, [pairTile, pairTile]);
             if (remaining === null) continue;
-            const meldOptions = decomposeMelds(sortTiles(remaining));
+            const meldOptions = decomposeMeldsOrdered(remaining);
             for (const sets of meldOptions) {
                 if (sets.length === 4) decomps.push({ pair: pairTile, sets });
             }
@@ -1104,7 +1085,8 @@
 
         const hasSpecialWindDragon = flags.ziyise || flags.dasixi || flags.xiaosixi || flags.dasanyuan || flags.xiaosanyuan;
 
-        if (!hasSpecialWindDragon) {
+        // 清一色/大四喜/小四喜/字一色等不重複計算風牌/龍牌包攬番
+        if (!hasSpecialWindDragon && !flags.qingyise) {
             if (windTriplets.includes(ctx.prevailingWind)) breakdown.push('quanfengke');
             if (windTriplets.includes(ctx.seatWind)) breakdown.push('menfengke');
             dragonTriplets.forEach(() => breakdown.push('dragonke'));
@@ -1126,12 +1108,8 @@
         const decomps = findHandDecompositions(tiles);
         if (decomps.length === 0) return null;
 
-        let best = null;
-        for (const d of decomps) {
-            const result = analyzeDecomposition(d, ctx);
-            if (!best || result.total > best.total) best = result;
-        }
-        return best;
+        // 優先採用順序解析的第一個有效組合
+        return analyzeDecomposition(decomps[0], ctx);
     }
 
     function renderResultHTML(result, displayTiles) {
@@ -1141,7 +1119,7 @@
             <ul class="fan-list">
                 ${result.breakdown.map(id => `<li><span>${FAN_NAMES[id] ? FAN_NAMES[id].cn : id} (${FAN_NAMES[id] ? FAN_NAMES[id].en : ''})</span><span>${FAN_NAMES[id] ? FAN_NAMES[id].fan : 0} 番</span></li>`).join('')}
             </ul>
-            <div class="tile-echo">牌張：${displayTiles.join(' ')}</div>
+            <div class="tile-echo">牌張（順序）：${displayTiles.join(' ')}</div>
         `;
         scoreDisplay.innerHTML = html;
     }

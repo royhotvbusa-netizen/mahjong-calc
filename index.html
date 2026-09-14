@@ -155,6 +155,7 @@
             padding: 10px;
             border-radius: 8px;
             line-height: 1.4;
+            word-break: break-all;
         }
 
         .action-container {
@@ -199,7 +200,7 @@
     </div>
 
     <div class="score-board" id="scoreDisplay">
-        目前狀態：請將手牌對準框線，點擊「影相」開始辨識
+        目前狀態：相機已就緒，請點擊「影相」辨識手牌
     </div>
 
     <div class="action-container">
@@ -212,7 +213,7 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    // 請在此處填入您的真實 Roboflow API Key
+    // ⚠️ 請確認此處已填入您真正的 Roboflow API Key（例如 "rf_xxxxxx"）
     const API_KEY = "請填入您的API_Key";
     const MODEL_ID = "mahjong-tile-scoring-3";
     const VERSION = "3";
@@ -238,6 +239,11 @@
     }
 
     async function captureAndDetect() {
+        if (API_KEY.includes("請填入")) {
+            document.getElementById('scoreDisplay').innerHTML = "❌ 錯誤：您尚未在程式碼中填入真實的 API Key！";
+            return;
+        }
+
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
         const scoreDisplay = document.getElementById('scoreDisplay');
@@ -266,7 +272,7 @@
 
                     const result = await response.json();
                     
-                    if (result && result.predictions) {
+                    if (response.ok && result && result.predictions) {
                         if (result.predictions.length > 0) {
                             const detectedTiles = result.predictions.map(p => p.class);
                             scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到 ${detectedTiles.length} 張牌：${detectedTiles.join(', ')}`;
@@ -274,10 +280,10 @@
                             scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
                         }
                     } else {
-                        scoreDisplay.innerHTML = `⚠️ 伺服器回應異常：${result.message || '未知錯誤'}`;
+                        scoreDisplay.innerHTML = `❌ API 錯誤 (${response.status})：${result.message || JSON.stringify(result)}`;
                     }
                 } catch (error) {
-                    scoreDisplay.innerHTML = "❌ 網路連線錯誤，請確認 API Key 是否正確。";
+                    scoreDisplay.innerHTML = `❌ 連線失敗詳細原因：${error.message}`;
                 }
             };
         }, "image/jpeg", 0.8);

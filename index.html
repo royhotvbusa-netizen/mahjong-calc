@@ -670,7 +670,8 @@
 <script>
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
     const MODEL_ID = "mahjong-tile-scoring";
-    const VERSION = 3;
+    // 切換回表現較佳的 Version 2 模型 (Valid Set mAP 58.3%)
+    const VERSION = 2;
 
     let mediaStream = null;
 
@@ -1280,7 +1281,6 @@
     function captureFromFullscreen() {
         const video = document.getElementById('fullscreenVideo');
         const scanBox = document.getElementById('scanBox');
-        // 必須先擷取 Canvas 影像，再關閉 Modal 視窗
         processImageAndSend(video, scanBox);
         closeFullscreenCamera();
     }

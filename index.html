@@ -920,7 +920,7 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // iOS Safari CORS 絕殺版：使用 application/x-www-form-urlencoded 傳送純 Base64 字串
+    // iOS Safari 官方標準 REST API 相容版
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
@@ -953,7 +953,7 @@
             canvas.width = 1;
             canvas.height = 1;
 
-            // 3. 使用 application/x-www-form-urlencoded 並將 base64 字串作為 body 直傳 (Safari 最相容模式)
+            // 3. 按照 Roboflow 官方 REST API 要求，將 Base64 進行 URL Encode
             const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
 
             const response = await fetch(apiUrl, {
@@ -961,7 +961,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: base64Data
+                body: encodeURIComponent(base64Data)
             });
 
             if (!response.ok) {

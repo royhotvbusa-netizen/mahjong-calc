@@ -671,7 +671,7 @@
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
     const MODEL_ID = "mahjong-tile-scoring";
     // 切換回表現較佳的 Version 2 模型 (Valid Set mAP 58.3%)
-    const VERSION = 2;
+    const VERSION = 4;
 
     let mediaStream = null;
 
@@ -1172,7 +1172,7 @@
 
         const xhr = new XMLHttpRequest();
         // 加上 Cache-Busting 隨機時間戳 _t，防止瀏覽器快取舊的 API 回傳結果
-        const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=40&_t=${Date.now()}`;
+        const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=35&overlap=30&_t=${Date.now()}`;
 
         xhr.open("POST", apiUrl, true);
 

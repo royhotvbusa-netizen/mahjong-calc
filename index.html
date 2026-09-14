@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>香港麻雀 - 計番</title>
-    <!-- 引入 Roboflow 官方 Web SDK (解決 iOS/Safari CORS 與 Load Failed 問題) -->
+    <!-- 引入 Roboflow 官方 Web SDK -->
     <script src="https://cdn.roboflow.com/0.2.26/roboflow.js"></script>
     <style>
         :root {
@@ -937,44 +937,39 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // 專為 iOS/Safari 設計：優先使用 Roboflow Web SDK 推論，若 SDK 未載入則自動 fallback 到 Direct API
+    // 記憶體防崩潰版：限制低解析度 (640px) 繪製，並於推論後強制清空 Canvas 記憶體
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
 
-        if (!video.videoWidth) {
+        if (!video || !video.videoWidth) {
             scoreDisplay.innerHTML = "⚠️ 相機尚未準備好，請稍候再試。";
             return;
         }
 
-        const maxDim = 1024;
-        let targetWidth = video.videoWidth;
-        let targetHeight = video.videoHeight;
+        scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
-        if (targetWidth > maxDim) {
-            targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
-            targetWidth = maxDim;
-        }
+        // 1. 強制等比例縮放至 640px 寬，大幅節省內存
+        const targetWidth = 640;
+        const aspectRatio = video.videoHeight / video.videoWidth;
+        const targetHeight = Math.round(targetWidth * aspectRatio);
 
         canvas.width = targetWidth;
         canvas.height = targetHeight;
-        const ctx2d = canvas.getContext('2d');
-        ctx2d.drawImage(video, 0, 0, targetWidth, targetHeight);
 
-        scoreDisplay.innerHTML = "🔄 正在分析手牌...";
+        const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+        ctx2d.drawImage(video, 0, 0, targetWidth, targetHeight);
 
         try {
             let predictions = [];
 
-            // 優先方法：使用 SDK 傳入 Canvas 元素推論 (全端點最佳相容性)
+            // 2. 優先使用 Roboflow SDK 推論
             if (roboflowModel) {
                 predictions = await roboflowModel.detect(canvas);
             } else {
-                // 備用方法：以 Base64 POST Direct API
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                const base64Data = dataUrl.split(',')[1];
-
+                // 備用 Direct API
+                const base64Data = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
                 const response = await fetch(`https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -985,6 +980,11 @@
                 const data = await response.json();
                 predictions = data.predictions || [];
             }
+
+            // 3. 釋放 Canvas 記憶體，防止 iOS Safari RAM limit 自動重整
+            ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = 1;
+            canvas.height = 1;
 
             if (predictions.length === 0) {
                 scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";

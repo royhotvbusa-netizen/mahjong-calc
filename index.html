@@ -67,7 +67,6 @@
             text-decoration: none;
         }
 
-        /* 縮小後的觀景框取景區 */
         .camera-viewport {
             position: relative;
             width: 100%;
@@ -87,7 +86,6 @@
             object-fit: cover;
         }
 
-        /* 四角括號覆蓋層 */
         .corner-frame {
             position: absolute;
             width: 85%;
@@ -205,7 +203,7 @@
     </div>
 
     <div class="action-container">
-        <button class="capture-btn" onclick="captureImage()">
+        <button class="capture-btn" onclick="captureAndDetect()">
             📷 影相
         </button>
     </div>
@@ -214,6 +212,11 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
+    // 請在此處填入您的 Roboflow 參數
+    const API_KEY = "請填入您的RoboflowAPI_Key"; 
+    const MODEL_ID = "mahjong-tile-scoring-3";
+    const VERSION = "3";
+
     async function initCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -234,7 +237,7 @@
         }
     }
 
-    function captureImage() {
+    async function captureAndDetect() {
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
         const scoreDisplay = document.getElementById('scoreDisplay');
@@ -244,11 +247,34 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        scoreDisplay.innerHTML = "🔄 正在分析手牌影像中...";
+        scoreDisplay.innerHTML = "🔄 正在傳送至 Roboflow 模型進行分析...";
 
-        setTimeout(() => {
-            scoreDisplay.innerHTML = "🎯 辨識成功！<br>• 偵測牌型：三萬、四萬、五萬 (順子)<br>• 總番數：1 番";
-        }, 1200);
+        canvas.toBlob(async (blob) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = async function () {
+                const base64Image = reader.result.split(',')[1];
+
+                try {
+                    const response = await fetch(`https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: base64Image
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result && result.predictions) {
+                        const detectedTiles = result.predictions.map(p => p.class);
+                        scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到牌張數：${detectedTiles.length} 張<br>• 內容：${detectedTiles.join(', ')}`;
+                    } else {
+                        scoreDisplay.innerHTML = "⚠️ 未能偵測到麻雀牌，請再試一次。";
+                    }
+                } catch (error) {
+                    scoreDisplay.innerHTML = "❌ 辨識連线失敗，請檢查網路或 API Key。";
+                }
+            };
+        }, "image/jpeg", 0.8);
     }
 
     window.addEventListener('load', initCamera);

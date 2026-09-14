@@ -920,7 +920,7 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // iOS Safari 官方標準 REST API 相容版
+    // Roboflow REST API 純 Base64 POST 版 (避免 CORS 與 Preflight 阻擋)
     async function captureAndDetect() {
         const scoreDisplay = document.getElementById('scoreDisplay');
         const video = document.getElementById('cameraStream');
@@ -933,7 +933,6 @@
 
         scoreDisplay.innerHTML = "🔄 正在分析手牌...";
 
-        // 1. 等比例縮放至 640px，控制記憶體並加快傳輸
         const targetWidth = 640;
         const aspectRatio = video.videoHeight / video.videoWidth;
         const targetHeight = Math.round(targetWidth * aspectRatio);
@@ -948,12 +947,10 @@
             const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
             const base64Data = dataUrl.split(',')[1];
 
-            // 2. 釋放 Canvas 記憶體
             ctx2d.clearRect(0, 0, canvas.width, canvas.height);
             canvas.width = 1;
             canvas.height = 1;
 
-            // 3. 按照 Roboflow 官方 REST API 要求，將 Base64 進行 URL Encode
             const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=30`;
 
             const response = await fetch(apiUrl, {
@@ -961,11 +958,12 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: encodeURIComponent(base64Data)
+                body: base64Data
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP 錯誤碼 (${response.status})`);
+                const errText = await response.text().catch(() => '');
+                throw new Error(`HTTP ${response.status} (${errText || response.statusText})`);
             }
 
             const data = await response.json();

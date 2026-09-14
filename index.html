@@ -769,8 +769,8 @@
     };
 
     function addManualTile(val, label) {
-        if (selectedManualTiles.length >= 14) {
-            alert('一幅完整的香港麻雀手牌為 14 張！');
+        if (selectedManualTiles.length >= 18) {
+            alert('手牌最多只能選擇 18 張（包含開槓）！');
             return;
         }
         selectedManualTiles.push(val);
@@ -801,8 +801,8 @@
 
     function evaluateManualHand() {
         if (currentMode !== 'manual') return;
-        if (selectedManualTiles.length !== 14) {
-            document.getElementById('scoreDisplay').innerHTML = `⚠️ <span class="warn-text">已選 ${selectedManualTiles.length} / 14 張牌</span><br>請繼續選牌直到湊滿 14 張。`;
+        if (selectedManualTiles.length < 14) {
+            document.getElementById('scoreDisplay').innerHTML = `⚠️ <span class="warn-text">已選 ${selectedManualTiles.length} 張牌</span><br>食糊至少需要 14 張牌（如有開槓可為 15–18 張）。`;
             return;
         }
         const ctx = { prevailingWind, seatWind, isSelfDraw };
@@ -950,12 +950,24 @@
         return cur;
     }
 
+    // 支援 3 張刻子或 4 張槓子拆解
     function decomposeMelds(tiles) {
         if (tiles.length === 0) return [[]];
         const results = [];
         const first = tiles[0];
         const cnt = tiles.filter(t => t === first).length;
 
+        // 4 張槓子
+        if (cnt >= 4) {
+            const rest = removeTiles(tiles, [first, first, first, first]);
+            if (rest !== null) {
+                for (const sub of decomposeMelds(sortTiles(rest))) {
+                    results.push([{ type: 'triplet', tile: first }, ...sub]);
+                }
+            }
+        }
+
+        // 3 張刻子
         if (cnt >= 3) {
             const rest = removeTiles(tiles, [first, first, first]);
             if (rest !== null) {
@@ -965,6 +977,7 @@
             }
         }
 
+        // 順子
         if (isSuited(first)) {
             const n = tileNum(first), suit = tileSuit(first);
             if (n <= 7) {
@@ -982,13 +995,13 @@
         return results;
     }
 
-    function findHandDecompositions(tiles14) {
-        const distinct = [...new Set(tiles14)];
+    function findHandDecompositions(tiles) {
+        const distinct = [...new Set(tiles)];
         const decomps = [];
         for (const pairTile of distinct) {
-            const count = tiles14.filter(t => t === pairTile).length;
+            const count = tiles.filter(t => t === pairTile).length;
             if (count < 2) continue;
-            const remaining = removeTiles(tiles14, [pairTile, pairTile]);
+            const remaining = removeTiles(tiles, [pairTile, pairTile]);
             if (remaining === null) continue;
             const meldOptions = decomposeMelds(sortTiles(remaining));
             for (const sets of meldOptions) {
@@ -998,10 +1011,11 @@
         return decomps;
     }
 
-    function isThirteenOrphans(tiles14) {
-        if (tiles14.some(t => !TERMINAL_HONOR_SET.includes(t))) return false;
+    function isThirteenOrphans(tiles) {
+        if (tiles.length !== 14) return false;
+        if (tiles.some(t => !TERMINAL_HONOR_SET.includes(t))) return false;
         const counts = {};
-        tiles14.forEach(t => counts[t] = (counts[t] || 0) + 1);
+        tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
         return Object.keys(counts).length === 13 && Object.values(counts).filter(c => c === 2).length === 1;
     }
 
@@ -1065,14 +1079,14 @@
         return { total, breakdown };
     }
 
-    function calculateBestScore(tiles14, ctx) {
-        if (isThirteenOrphans(tiles14)) {
+    function calculateBestScore(tiles, ctx) {
+        if (isThirteenOrphans(tiles)) {
             const breakdown = ['shisanyao'];
             if (ctx.isSelfDraw) breakdown.push('zimo');
             return { total: breakdown.reduce((s, id) => s + (FAN_NAMES[id] ? FAN_NAMES[id].fan : 0), 0), breakdown };
         }
 
-        const decomps = findHandDecompositions(tiles14);
+        const decomps = findHandDecompositions(tiles);
         if (decomps.length === 0) return null;
 
         let best = null;
@@ -1095,7 +1109,7 @@
         scoreDisplay.innerHTML = html;
     }
 
-    function renderScore(tiles14, unmapped) {
+    function renderScore(tiles, unmapped) {
         const scoreDisplay = document.getElementById('scoreDisplay');
 
         if (unmapped.length > 0) {
@@ -1103,20 +1117,20 @@
             return;
         }
 
-        if (tiles14.length !== 14) {
-            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles14.length} 張牌，計番需要完整 14 張。</span><br>目前偵測：${tiles14.map(t => tileDisplayNames[t] || t).join(', ') || '（無）'}`;
+        if (tiles.length < 14 || tiles.length > 18) {
+            scoreDisplay.innerHTML = `⚠️ <span class="warn-text">偵測到 ${tiles.length} 張牌，食糊需要 14–18 張。</span><br>目前偵測：${tiles.map(t => tileDisplayNames[t] || t).join(', ') || '（無）'}`;
             return;
         }
 
         const ctx = { prevailingWind, seatWind, isSelfDraw };
-        const result = calculateBestScore(tiles14, ctx);
+        const result = calculateBestScore(tiles, ctx);
 
         if (!result) {
-            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>偵測到：${tiles14.map(t => tileDisplayNames[t] || t).join(', ')}`;
+            scoreDisplay.innerHTML = `❌ <span class="error-text">呢組牌無法組成有效糊牌。</span><br>偵測到：${tiles.map(t => tileDisplayNames[t] || t).join(', ')}`;
             return;
         }
 
-        renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
+        renderResultHTML(result, tiles.map(t => tileDisplayNames[t] || t));
     }
 
     function processImageAndSend(video, scanBox) {
@@ -1190,15 +1204,15 @@
                         }
 
                         const rawClasses = predictions.map(p => p.class);
-                        const tiles14 = [];
+                        const tiles = [];
                         const unmapped = [];
                         rawClasses.forEach(raw => {
                             const norm = normalizeTileClass(raw);
-                            if (norm) tiles14.push(norm);
+                            if (norm) tiles.push(norm);
                             else unmapped.push(raw);
                         });
 
-                        renderScore(tiles14, unmapped);
+                        renderScore(tiles, unmapped);
                     } catch (e) {
                         scoreDisplay.innerHTML = `❌ 解析回應失敗：${e.message}`;
                     }

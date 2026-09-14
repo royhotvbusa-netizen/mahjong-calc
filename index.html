@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>香港麻雀 - 計番</title>
-    <!-- 引入 Roboflow 官方 Web SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/roboflow/0.2.26/roboflow.min.js"></script>
     <style>
         :root {
             --bg-color: #0b2e1e;
@@ -201,7 +199,7 @@
     </div>
 
     <div class="score-board" id="scoreDisplay">
-        目前狀態：正在載入 AI 模型...
+        目前狀態：請將手牌對準框線，點擊「影相」開始辨識
     </div>
 
     <div class="action-container">
@@ -214,24 +212,10 @@
 <canvas id="snapshotCanvas" style="display:none;"></canvas>
 
 <script>
-    let model = null;
-
-    // 初始化載入 Roboflow 模型
-    async function initModel() {
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        try {
-            // 請在此處填入您的 Roboflow API Key、專案名稱與版本
-            const rf = await Roboflow({
-                apiKey: "請填入您的API_Key",
-                model: "mahjong-tile-scoring-3",
-                version: 3
-            });
-            model = await rf.load();
-            scoreDisplay.innerText = "模型載入成功！請將手牌對準框線，點擊「影相」";
-        } catch (err) {
-            scoreDisplay.innerText = "⚠️ 模型載入失敗，請檢查 API Key 或網路設定。";
-        }
-    }
+    // 請在此處填入您的真實 Roboflow API Key
+    const API_KEY = "請填入您的API_Key";
+    const MODEL_ID = "mahjong-tile-scoring-3";
+    const VERSION = "3";
 
     async function initCamera() {
         try {
@@ -254,41 +238,52 @@
     }
 
     async function captureAndDetect() {
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        if (!model) {
-            scoreDisplay.innerText = "⚠️ 模型尚未初始化完成，請稍候...";
-            return;
-        }
-
         const video = document.getElementById('cameraStream');
         const canvas = document.getElementById('snapshotCanvas');
+        const scoreDisplay = document.getElementById('scoreDisplay');
         
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        scoreDisplay.innerHTML = "🔄 正在分析手牌...";
+        scoreDisplay.innerHTML = "🔄 正在傳送至 AI 模型進行分析...";
 
-        try {
-            // 使用 SDK 進行預測
-            const predictions = await model.detect(canvas);
-            
-            if (predictions && predictions.length > 0) {
-                const detectedTiles = predictions.map(p => p.class);
-                scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到 ${detectedTiles.length} 張牌：${detectedTiles.join(', ')}`;
-            } else {
-                scoreDisplay.innerHTML = "⚠️ 未能偵測到麻雀牌，請調整距離或角度再試一次。";
-            }
-        } catch (error) {
-            scoreDisplay.innerHTML = "❌ 辨識過程發生錯誤，請重新整理頁面。";
-        }
+        canvas.toBlob(async (blob) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = async function () {
+                const base64Image = reader.result.split(',')[1];
+
+                try {
+                    const response = await fetch(`https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: base64Image
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result && result.predictions) {
+                        if (result.predictions.length > 0) {
+                            const detectedTiles = result.predictions.map(p => p.class);
+                            scoreDisplay.innerHTML = `🎯 辨識成功！<br>• 偵測到 ${detectedTiles.length} 張牌：${detectedTiles.join(', ')}`;
+                        } else {
+                            scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                        }
+                    } else {
+                        scoreDisplay.innerHTML = `⚠️ 伺服器回應異常：${result.message || '未知錯誤'}`;
+                    }
+                } catch (error) {
+                    scoreDisplay.innerHTML = "❌ 網路連線錯誤，請確認 API Key 是否正確。";
+                }
+            };
+        }, "image/jpeg", 0.8);
     }
 
-    window.addEventListener('load', async () => {
-        await initCamera();
-        await initModel();
-    });
+    window.addEventListener('load', initCamera);
 </script>
 
 </body>

@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>香港麻雀 - 計番</title>
     <style>
         :root {
@@ -149,6 +149,166 @@
 
         .bottom-corners::before { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
         .bottom-corners::after { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+
+        .fullscreen-camera {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .fullscreen-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mask-top, .mask-bottom {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            flex: 1;
+        }
+
+        .scan-strip-container {
+            width: 100%;
+            height: 90px;
+            display: flex;
+            position: relative;
+            align-items: center;
+        }
+
+        .mask-left, .mask-right {
+            background: rgba(0, 0, 0, 0.65);
+            height: 100%;
+            width: 5%;
+        }
+
+        .scan-box {
+            flex: 1;
+            height: 100%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .scan-box::before, .scan-box::after,
+        .scan-box-corners::before, .scan-box-corners::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-color: #ffffff;
+            border-style: solid;
+            border-width: 4px;
+        }
+
+        .scan-box::before { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
+        .scan-box::after { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
+
+        .scan-box-corners {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .scan-box-corners::before { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
+        .scan-box-corners::after { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
+
+        .guide-tooltip {
+            position: absolute;
+            bottom: 22%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10001;
+        }
+
+        .guide-arrows {
+            color: #ffffff;
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .guide-text-pill {
+            background: rgba(0, 0, 0, 0.65);
+            color: #ffffff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .shutter-btn {
+            position: absolute;
+            right: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px solid #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 10002;
+        }
+
+        .shutter-inner {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #ffffff;
+        }
+
+        .close-cam-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            font-size: 1.4rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 10002;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
 
         .manual-panel {
             background: rgba(255,255,255,0.06);
@@ -396,7 +556,7 @@
         <div class="settings-grid" id="settingsContainer"></div>
     </div>
 
-    <div class="camera-viewport" id="cameraContainer">
+    <div class="camera-viewport" id="cameraContainer" onclick="openFullscreenCamera()">
         <video id="cameraStream" autoplay playsinline muted></video>
         <div class="corner-frame">
             <div class="bottom-corners"></div>
@@ -445,13 +605,39 @@
     </div>
 
     <div class="score-board" id="scoreDisplay">
-        請將 14 張牌橫向對準框線，點擊「影相」或切換至手動選牌
+        請點擊「影相」開啟全螢幕掃描，或切換至手動選牌
     </div>
 
     <div class="action-container" id="actionContainer">
-        <button class="capture-btn" id="captureBtn" onclick="captureAndDetect()">
+        <button class="capture-btn" id="captureBtn" onclick="openFullscreenCamera()">
             📷 影相
         </button>
+    </div>
+</div>
+
+<div class="fullscreen-camera" id="fullscreenCameraModal" style="display: none;">
+    <video class="fullscreen-video" id="fullscreenVideo" autoplay playsinline muted></video>
+    <div class="close-cam-btn" onclick="closeFullscreenCamera()">&times;</div>
+    
+    <div class="camera-overlay">
+        <div class="mask-top"></div>
+        <div class="scan-strip-container">
+            <div class="mask-left"></div>
+            <div class="scan-box" id="scanBox">
+                <div class="scan-box-corners"></div>
+            </div>
+            <div class="mask-right"></div>
+        </div>
+        <div class="mask-bottom"></div>
+    </div>
+
+    <div class="guide-tooltip">
+        <div class="guide-arrows">↑ ↑</div>
+        <div class="guide-text-pill">將麻雀牌置中</div>
+    </div>
+
+    <div class="shutter-btn" onclick="captureFromFullscreen()">
+        <div class="shutter-inner"></div>
     </div>
 </div>
 
@@ -462,10 +648,12 @@
     const MODEL_ID = "mahjong-tile-scoring";
     const VERSION = 3;
 
+    let mediaStream = null;
+
     window.addEventListener('load', async () => {
         initSettingsUI();
         initPickers();
-        await initCamera();
+        await initCameraStream();
     });
 
     const defaultFanConfig = {
@@ -519,7 +707,7 @@
         const actionContainer = document.getElementById('actionContainer');
         if (mode === 'camera') {
             actionContainer.style.display = 'flex';
-            document.getElementById('scoreDisplay').innerHTML = "請將 14 張牌橫向對準框線，點擊「影相」";
+            document.getElementById('scoreDisplay').innerHTML = "請點擊「影相」開啟全螢幕掃描，或切換至手動選牌";
         } else {
             actionContainer.style.display = 'none';
             evaluateManualHand();
@@ -668,21 +856,31 @@
 
     updateContext();
 
-    async function initCamera() {
+    async function initCameraStream() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } },
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: false
             });
-            document.getElementById('cameraStream').srcObject = stream;
+            document.getElementById('cameraStream').srcObject = mediaStream;
+            document.getElementById('fullscreenVideo').srcObject = mediaStream;
         } catch (err) {
             try {
-                const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                document.getElementById('cameraStream').srcObject = fallbackStream;
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                document.getElementById('cameraStream').srcObject = mediaStream;
+                document.getElementById('fullscreenVideo').srcObject = mediaStream;
             } catch (e) {
                 document.getElementById('scoreDisplay').innerText = "無法存取相機，請檢查權限設定。";
             }
         }
+    }
+
+    function openFullscreenCamera() {
+        document.getElementById('fullscreenCameraModal').style.display = 'flex';
+    }
+
+    function closeFullscreenCamera() {
+        document.getElementById('fullscreenCameraModal').style.display = 'none';
     }
 
     const HONOR_ALIASES = {
@@ -920,28 +1118,40 @@
         renderResultHTML(result, tiles14.map(t => tileDisplayNames[t] || t));
     }
 
-    // 改用 XMLHttpRequest 傳送 FormData，解決 iOS WebKit 上 fetch CORS Preflight 的相容性問題
-    function captureAndDetect() {
+    function captureFromFullscreen() {
         const scoreDisplay = document.getElementById('scoreDisplay');
-        const video = document.getElementById('cameraStream');
+        const video = document.getElementById('fullscreenVideo');
+        const scanBox = document.getElementById('scanBox');
         const canvas = document.getElementById('snapshotCanvas');
 
         if (!video || !video.videoWidth) {
             scoreDisplay.innerHTML = "⚠️ 相機尚未準備好，請稍候再試。";
+            closeFullscreenCamera();
             return;
         }
 
         scoreDisplay.innerHTML = "🔄 正在分析手牌...";
+        closeFullscreenCamera();
 
-        const targetWidth = 640;
-        const aspectRatio = video.videoHeight / video.videoWidth;
-        const targetHeight = Math.round(targetWidth * aspectRatio);
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
 
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+        const videoRect = video.getBoundingClientRect();
+        const scanBoxRect = scanBox.getBoundingClientRect();
+
+        const scaleX = videoWidth / videoRect.width;
+        const scaleY = videoHeight / videoRect.height;
+
+        const cropX = (scanBoxRect.left - videoRect.left) * scaleX;
+        const cropY = (scanBoxRect.top - videoRect.top) * scaleY;
+        const cropWidth = scanBoxRect.width * scaleX;
+        const cropHeight = scanBoxRect.height * scaleY;
+
+        canvas.width = Math.max(1, cropWidth);
+        canvas.height = Math.max(1, cropHeight);
 
         const ctx2d = canvas.getContext('2d');
-        ctx2d.drawImage(video, 0, 0, targetWidth, targetHeight);
+        ctx2d.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob((blob) => {
             ctx2d.clearRect(0, 0, canvas.width, canvas.height);
@@ -968,7 +1178,7 @@
                         const predictions = data.predictions || [];
 
                         if (predictions.length === 0) {
-                            scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請調整距離或角度重試。";
+                            scoreDisplay.innerHTML = "⚠️ 未能辨識出任何麻雀牌，請將手牌精準對準框線重試。";
                             return;
                         }
 
@@ -991,11 +1201,11 @@
             };
 
             xhr.onerror = function () {
-                scoreDisplay.innerHTML = `❌ 網路連線失敗 (CORS / Network Error)。請確認 API Key 配額或網路設定。`;
+                scoreDisplay.innerHTML = `❌ 網路連線失敗。請確認 API Key 配額或網路設定。`;
             };
 
             xhr.send(formData);
-        }, 'image/jpeg', 0.6);
+        }, 'image/jpeg', 0.85);
     }
 </script>
 

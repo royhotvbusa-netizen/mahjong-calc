@@ -11,11 +11,6 @@
             --text-main: #ffffff;
             --text-sub: #cbd5e1;
             --accent-color: #2e7d32;
-            --accent-hover: #1b5e20;
-            --border-color: rgba(255, 255, 255, 0.2);
-            --active-bg: rgba(46, 125, 50, 0.3);
-            --disabled-bg: rgba(255, 255, 255, 0.03);
-            --disabled-color: #64748b;
         }
 
         body {
@@ -36,7 +31,6 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
             padding: 24px 20px;
             box-sizing: border-box;
-            position: relative;
             display: flex;
             flex-direction: column;
             min-height: 80vh;
@@ -73,7 +67,6 @@
             font-size: 0.85rem;
             margin-top: 8px;
             text-decoration: none;
-            cursor: pointer;
         }
 
         /* 觀景框取景區 */
@@ -85,7 +78,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.25);
             border-radius: 12px;
             overflow: hidden;
         }
@@ -93,8 +86,8 @@
         /* 四角括號樣式 */
         .corner-frame {
             position: absolute;
-            width: 90%;
-            height: 120px;
+            width: 88%;
+            height: 100px;
             box-sizing: border-box;
             pointer-events: none;
         }
@@ -102,77 +95,75 @@
         .corner-frame::before, .corner-frame::after {
             content: '';
             position: absolute;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-color: #4ade80;
             border-style: solid;
             border-width: 4px;
         }
 
-        /* 左上角 */
         .corner-frame::before {
             top: 0;
             left: 0;
             border-right: none;
             border-bottom: none;
-            border-top-left-radius: 8px;
+            border-top-left-radius: 6px;
         }
 
-        /* 右上角 */
         .corner-frame::after {
             top: 0;
             right: 0;
             border-left: none;
             border-bottom: none;
-            border-top-right-radius: 8px;
+            border-top-right-radius: 6px;
         }
 
-        .corner-frame .bottom-corners::before, 
-        .corner-frame .bottom-corners::after {
+        .bottom-corners::before, .bottom-corners::after {
             content: '';
             position: absolute;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-color: #4ade80;
             border-style: solid;
             border-width: 4px;
         }
 
-        /* 左下角 */
-        .corner-frame .bottom-corners::before {
+        .bottom-corners::before {
             bottom: 0;
             left: 0;
             border-right: none;
             border-top: none;
-            border-bottom-left-radius: 8px;
+            border-bottom-left-radius: 6px;
         }
 
-        /* 右下角 */
-        .corner-frame .bottom-corners::after {
+        .bottom-corners::after {
             bottom: 0;
             right: 0;
             border-left: none;
             border-top: none;
-            border-bottom-right-radius: 8px;
+            border-bottom-right-radius: 6px;
         }
 
+        /* 修正麻雀牌橫向排列顯示 */
         .simulated-tiles {
             display: flex;
-            gap: 3px;
-            background: #fdfbf7;
-            padding: 4px 6px;
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 3px 6px;
             border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            transform: scale(0.85);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
         }
 
-        .simulated-tiles img {
-            width: 20px;
-            height: 28px;
-            object-fit: contain;
+        .score-board {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 10px;
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 8px;
         }
 
-        /* 底部拍照按鈕區 */
         .action-container {
             display: flex;
             justify-content: flex-end;
@@ -193,20 +184,6 @@
             gap: 8px;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
-            transition: transform 0.1s;
-        }
-
-        .capture-btn:active {
-            transform: scale(0.96);
-        }
-
-        .score-board {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-top: 15px;
-            background: rgba(255,255,255,0.05);
-            padding: 10px;
-            border-radius: 8px;
         }
     </style>
 </head>
@@ -221,13 +198,13 @@
         <a class="menu-link">ⓘ 番數表</a>
     </header>
 
-    <!-- 具有四角括號的取景框 -->
+    <!-- 取景框與括號 -->
     <div class="camera-viewport">
         <div class="corner-frame">
             <div class="bottom-corners"></div>
         </div>
         <div class="simulated-tiles">
-            <span style="font-size: 14px; padding: 2px;">🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫</span>
+            <span style="font-size: 16px; color: #111;">🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫</span>
         </div>
     </div>
 

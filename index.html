@@ -1,282 +1,252 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>廣東麻雀食糊牌平台 - 拍照自動計番</title>
-  <!-- 引入 Roboflow 官方 Web SDK -->
-  <script src="https://cdn.roboflow.com/0.2.26/roboflow.js"></script>
-  <style>
-    :root {
-      --bg-color: #f7f9fa;
-      --card-bg: #ffffff;
-      --text-main: #2c3e50;
-      --text-sub: #7f8c8d;
-      --accent-color: #27ae60;
-      --accent-hover: #219653;
-      --border-color: #e2e8f0;
-      --active-bg: #e8f8f0;
-      --disabled-bg: #f1f5f9;
-      --disabled-color: #cbd5e1;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香港麻雀 - 計番</title>
+    <style>
+        :root {
+            --bg-color: #0b2e1e;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-sub: #cbd5e1;
+            --accent-color: #2e7d32;
+            --accent-hover: #1b5e20;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --active-bg: rgba(46, 125, 50, 0.3);
+            --disabled-bg: rgba(255, 255, 255, 0.03);
+            --disabled-color: #64748b;
+        }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      margin: 0;
-      padding: 16px;
-      display: flex;
-      justify-content: center;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
 
-    .container {
-      max-width: 600px;
-      width: 100%;
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background-color: #0d3824;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            padding: 24px 20px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 80vh;
+        }
 
-    h1 {
-      font-size: 1.4rem;
-      text-align: center;
-      margin-bottom: 16px;
-      color: var(--text-main);
-    }
+        header {
+            margin-bottom: 8px;
+        }
 
-    .upload-section {
-      border: 2px dashed var(--accent-color);
-      padding: 20px;
-      text-align: center;
-      border-radius: 8px;
-      background: var(--active-bg);
-      margin-bottom: 16px;
-      cursor: pointer;
-    }
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.6rem;
+            font-weight: bold;
+        }
 
-    .upload-section input {
-      display: none;
-    }
+        .dropdown-icon {
+            font-size: 1.1rem;
+            color: var(--text-sub);
+        }
 
-    .btn {
-      background-color: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      font-size: 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 8px;
-      font-weight: bold;
-    }
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
 
-    .btn:hover {
-      background-color: var(--accent-hover);
-    }
+        .menu-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            margin-top: 8px;
+            text-decoration: none;
+            cursor: pointer;
+        }
 
-    .btn:disabled {
-      background-color: var(--disabled-color);
-      cursor: not-allowed;
-    }
+        /* 觀景框取景區 */
+        .camera-viewport {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+        }
 
-    .status-msg {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      text-align: center;
-      color: var(--text-sub);
-    }
+        /* 四角括號樣式 */
+        .corner-frame {
+            position: absolute;
+            width: 90%;
+            height: 120px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
 
-    .output-box {
-      margin-top: 20px;
-      padding: 16px;
-      background: var(--bg-color);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
+        .corner-frame::before, .corner-frame::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-color: #4ade80;
+            border-style: solid;
+            border-width: 4px;
+        }
 
-    #previewImg {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 10px;
-      display: none;
-    }
-  </style>
+        /* 左上角 */
+        .corner-frame::before {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+            border-top-left-radius: 8px;
+        }
+
+        /* 右上角 */
+        .corner-frame::after {
+            top: 0;
+            right: 0;
+            border-left: none;
+            border-bottom: none;
+            border-top-right-radius: 8px;
+        }
+
+        .corner-frame .bottom-corners::before, 
+        .corner-frame .bottom-corners::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-color: #4ade80;
+            border-style: solid;
+            border-width: 4px;
+        }
+
+        /* 左下角 */
+        .corner-frame .bottom-corners::before {
+            bottom: 0;
+            left: 0;
+            border-right: none;
+            border-top: none;
+            border-bottom-left-radius: 8px;
+        }
+
+        /* 右下角 */
+        .corner-frame .bottom-corners::after {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+            border-bottom-right-radius: 8px;
+        }
+
+        .simulated-tiles {
+            display: flex;
+            gap: 3px;
+            background: #fdfbf7;
+            padding: 4px 6px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transform: scale(0.85);
+        }
+
+        .simulated-tiles img {
+            width: 20px;
+            height: 28px;
+            object-fit: contain;
+        }
+
+        /* 底部拍照按鈕區 */
+        .action-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: auto;
+            padding-bottom: 10px;
+        }
+
+        .capture-btn {
+            background-color: #22c55e;
+            color: #064e3b;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .capture-btn:active {
+            transform: scale(0.96);
+        }
+
+        .score-board {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 15px;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>🀄 廣東麻雀拍照自動計番</h1>
+<div class="container">
+    <header>
+        <div class="title-row">
+            香港麻雀 <span class="dropdown-icon">▼</span> 計番
+        </div>
+        <div class="subtitle">掃描手牌，立即計算番數</div>
+        <a class="menu-link">ⓘ 番數表</a>
+    </header>
 
-    <div class="upload-section" onclick="document.getElementById('fileInput').click()">
-      <p>📷 點擊此處拍攝或上傳麻雀相片</p>
-      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
+    <!-- 具有四角括號的取景框 -->
+    <div class="camera-viewport">
+        <div class="corner-frame">
+            <div class="bottom-corners"></div>
+        </div>
+        <div class="simulated-tiles">
+            <span style="font-size: 14px; padding: 2px;">🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫🀫</span>
+        </div>
     </div>
 
-    <img id="previewImg" alt="手牌長條區域預覽">
-
-    <button id="analyzeBtn" class="btn" onclick="analyzeImage()" disabled>開始 AI 分析</button>
-    <div id="status" class="status-msg">請先上傳相片</div>
-
-    <div class="output-box">
-      <p id="cantoneseOutput"><strong>分析結果：</strong>等待相片上傳...</p>
-      <p id="englishOutput"><strong>Status:</strong> Awaiting image upload...</p>
+    <div class="score-board" id="scoreDisplay">
+        目前總番數：0 番
     </div>
-  </div>
 
-  <script>
-    const ROBOFLOW_PUBLISHABLE_KEY = "rf_jHhGOkaKDgVyqG5VhOryNtzXqIo1";
-    const ROBOFLOW_PRIVATE_KEY = "zkchDUIdVpHwIWQPZOM";
-    const MODEL_ID = "mahjong-tile-scoring";
-    const MODEL_VERSION = 3;
+    <div class="action-container">
+        <button class="capture-btn" onclick="triggerCapture()">
+            📷 影相
+        </button>
+    </div>
+</div>
 
-    let roboflowModel = null;
-    let compressedBase64 = "";
-
-    // 1. 頁面加載時先嘗試加載 SDK
-    window.onload = function() {
-      if (window.roboflow) {
-        roboflow.auth({
-          publishable_key: ROBOFLOW_PUBLISHABLE_KEY
-        }).load({
-          model: MODEL_ID,
-          version: MODEL_VERSION
-        }).then(function(model) {
-          roboflowModel = model;
-          console.log("Roboflow SDK 載入成功");
-        }).catch(function(err) {
-          console.warn("Roboflow SDK 加載失敗，切換至 Direct API 備用模式：", err);
-        });
-      }
-    };
-
-    // 2. 處理圖片上傳：自動裁切「底部 35%」手牌長條範圍
-    function handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const status = document.getElementById("status");
-      status.innerText = "正在裁切手牌區域...";
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const img = new Image();
-        img.onload = function () {
-          const canvas = document.createElement("canvas");
-
-          // 定義只裁切圖片底部 35% 的區域 (覆蓋玩家面前手牌)
-          const cropX = 0;
-          const cropY = Math.round(img.height * 0.65); // 從高度 65% 處開始切
-          const cropWidth = img.width;
-          const cropHeight = Math.round(img.height * 0.35); // 保留底部 35% 高度
-
-          // 限制最大寬度為 1024px，避免圖片過大
-          const maxDim = 1024;
-          let targetWidth = cropWidth;
-          let targetHeight = cropHeight;
-
-          if (targetWidth > maxDim) {
-            targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
-            targetWidth = maxDim;
-          }
-
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-          const ctx = canvas.getContext("2d");
-
-          // 將原圖的手牌區域繪製到 Canvas 上
-          ctx.drawImage(
-            img,
-            cropX, cropY, cropWidth, cropHeight, // 原圖裁切範圍
-            0, 0, targetWidth, targetHeight       // Canvas 繪製範圍
-          );
-
-          // 轉換為 Base64 格式 (JPEG 85% 品質)
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
-          compressedBase64 = compressedDataUrl.split(',')[1];
-
-          // 顯示裁切後的長條預覽圖
-          const preview = document.getElementById("previewImg");
-          preview.src = compressedDataUrl;
-          preview.style.display = "block";
-
-          document.getElementById("analyzeBtn").disabled = false;
-          status.innerText = "長條手牌區域已裁切完成，請點擊「開始 AI 分析」";
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+<script>
+    function triggerCapture() {
+        alert("已觸發拍攝，正在辨識手牌...");
     }
+</script>
 
-    // 3. 執行 AI 推論 (SDK 與 Direct Fetch 雙軌容錯)
-    async function analyzeImage() {
-      const imgElement = document.getElementById("previewImg");
-      const status = document.getElementById("status");
-      const btn = document.getElementById("analyzeBtn");
-      const cantoneseOutput = document.getElementById("cantoneseOutput");
-      const englishOutput = document.getElementById("englishOutput");
-
-      if (!imgElement.src) return;
-
-      btn.disabled = true;
-      status.innerText = "AI 正在辨識手牌中，請稍候...";
-
-      try {
-        let predictions = [];
-
-        // 優先路徑：使用 SDK 辨識
-        if (roboflowModel) {
-          try {
-            predictions = await roboflowModel.detect(imgElement);
-          } catch (sdkErr) {
-            console.warn("SDK 推論失敗，切換至 Direct Fetch：", sdkErr);
-            roboflowModel = null;
-          }
-        }
-
-        // 備用路徑：使用 HTTP POST 直接呼叫 API
-        if (!roboflowModel || predictions.length === 0) {
-          const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${MODEL_VERSION}?api_key=${ROBOFLOW_PRIVATE_KEY}&confidence=30`;
-
-          const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: compressedBase64
-          });
-
-          if (!response.ok) {
-            throw new Error(`API 錯誤碼: ${response.status}`);
-          }
-
-          const resJson = await response.json();
-          predictions = resJson.predictions || [];
-        }
-
-        console.log("辨識結果：", predictions);
-        status.innerText = `分析完成！共辨識出 ${predictions.length} 張手牌`;
-
-        if (predictions.length > 0) {
-          const detectedTiles = predictions.map(p => p.class).join(', ');
-          cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> ${detectedTiles}`;
-          englishOutput.innerHTML = `<strong>Detected Tiles:</strong> ${detectedTiles}`;
-        } else {
-          cantoneseOutput.innerHTML = `<strong>辨識結果：</strong> 未能清晰辨識麻雀牌，請試試貼近手牌拍攝。`;
-          englishOutput.innerHTML = `<strong>Result:</strong> No tiles detected clearly.`;
-        }
-
-      } catch (error) {
-        console.error("Inference Error:", error);
-        status.innerText = "❌ AI 分析失敗，請檢查 Console 控制台紀錄。";
-        cantoneseOutput.innerHTML = `<strong>錯誤訊息：</strong> ${error.message}`;
-        englishOutput.innerHTML = `<strong>Error:</strong> ${error.message}`;
-      } finally {
-        btn.disabled = false;
-      }
-    }
-  </script>
 </body>
 </html>

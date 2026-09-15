@@ -697,7 +697,6 @@
         await initCameraStream();
     });
 
-    // 已移除 花牌、十八羅漢、搶槓、連槓開花
     const defaultFanConfig = {
         shisanyao: { cn: '十三么', en: 'Thirteen Orphans', fan: 10, enabled: true },
         jiulianbaodeng: { cn: '九蓮寶燈', en: 'Nine Gates', fan: 10, enabled: true },
@@ -1147,7 +1146,6 @@
             }
         };
 
-        // 特殊首巡
         if (ctx.specialFirstRound === 'tianhu') addRule('tianhu');
         else if (ctx.specialFirstRound === 'dihu') addRule('dihu');
         else if (ctx.specialFirstRound === 'renhu') addRule('renhu');
@@ -1180,7 +1178,6 @@
             dragonTriplets.forEach(() => addRule('dragonke'));
         }
 
-        // 門前清 / 自摸
         if (ctx.isMenzen && !flags.kankankou) addRule('menqianqing');
         if (ctx.winType === 'zimo') addRule('zimo');
 
@@ -1194,7 +1191,6 @@
             if (FAN_NAMES[key] && FAN_NAMES[key].enabled) breakdown.push(key);
         };
 
-        // 滿貫極限牌型判斷
         if (isThirteenOrphans(allTiles)) {
             addRule('shisanyao');
             if (ctx.winType === 'zimo') addRule('zimo');
@@ -1269,62 +1265,48 @@
             return;
         }
 
-        scoreDisplay.innerHTML = "🔄 正在進行 3 段式高解析分析...";
+        scoreDisplay.innerHTML = "🔄 正在進行圖像分析...";
 
         const vw = video.videoWidth;
         const vh = video.videoHeight;
 
-        const slices = [
-            { x: 0, w: vw * 0.45 },
-            { x: vw * 0.28, w: vw * 0.44 },
-            { x: vw * 0.55, w: vw * 0.45 }
-        ];
+        canvas.width = vw;
+        canvas.height = vh;
+        ctx2d.drawImage(video, 0, 0, vw, vh);
 
-        let allPredictions = [];
-        let completed = 0;
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                scoreDisplay.innerHTML = "⚠️ 影像處理失敗。";
+                return;
+            }
 
-        slices.forEach((slice) => {
-            canvas.width = slice.w;
-            canvas.height = vh;
-            ctx2d.drawImage(video, slice.x, 0, slice.w, vh, 0, 0, slice.w, vh);
+            const formData = new FormData();
+            formData.append("file", blob, "image.jpg");
 
-            canvas.toBlob((blob) => {
-                if (!blob) {
-                    completed++;
-                    if (completed === slices.length) handlePredictions(deduplicatePredictions(allPredictions));
-                    return;
-                }
+            const xhr = new XMLHttpRequest();
+            // 已精準修正為 confidence=10
+            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=30&_t=${Date.now()}`;
 
-                const formData = new FormData();
-                formData.append("file", blob, "image.jpg");
-
-                const xhr = new XMLHttpRequest();
-                const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=15&overlap=30&_t=${Date.now()}`;
-
-                xhr.open("POST", apiUrl, true);
-                xhr.onload = function () {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            const data = JSON.parse(xhr.responseText);
-                            const preds = data.predictions || [];
-                            preds.forEach(p => p.x += slice.x);
-                            allPredictions = allPredictions.concat(preds);
-                        } catch (e) {}
-                    }
-                    completed++;
-
-                    if (completed === slices.length) {
-                        const deduped = deduplicatePredictions(allPredictions);
+            xhr.open("POST", apiUrl, true);
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        const preds = data.predictions || [];
+                        const deduped = deduplicatePredictions(preds);
                         handlePredictions(deduped);
+                    } catch (e) {
+                        scoreDisplay.innerHTML = "❌ 解析回應資料失敗。";
                     }
-                };
-                xhr.onerror = function() {
-                    completed++;
-                    if (completed === slices.length) handlePredictions(deduplicatePredictions(allPredictions));
-                };
-                xhr.send(formData);
-            }, 'image/jpeg', 0.95);
-        });
+                } else {
+                    scoreDisplay.innerHTML = "❌ API 連線異常，請檢查網路或 Key。";
+                }
+            };
+            xhr.onerror = function() {
+                scoreDisplay.innerHTML = "❌ 影像傳送失敗。";
+            };
+            xhr.send(formData);
+        }, 'image/jpeg', 0.95);
     }
 
     function handlePredictions(predictions) {

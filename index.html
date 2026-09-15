@@ -686,7 +686,8 @@
 
 <script>
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
-    const MODEL_ID = "roy-ho/mahjong-baq4s-zhith-1-yolo11n-t1";
+    // 包含 Workspace 前綴以匹配 Roboflow Endpoint 格式
+    const MODEL_ID = "roy-ho/mahjong-baq4s-zhith-1-yolo11n-t1"; 
     const VERSION = 1;
 
     let mediaStream = null;
@@ -1283,29 +1284,27 @@
             const formData = new FormData();
             formData.append("file", blob, "image.jpg");
 
-            const xhr = new XMLHttpRequest();
-            // 已精準修正為 confidence=10
             const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=30&_t=${Date.now()}`;
 
-            xhr.open("POST", apiUrl, true);
-            xhr.onload = function () {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        const data = JSON.parse(xhr.responseText);
-                        const preds = data.predictions || [];
-                        const deduped = deduplicatePredictions(preds);
-                        handlePredictions(deduped);
-                    } catch (e) {
-                        scoreDisplay.innerHTML = "❌ 解析回應資料失敗。";
-                    }
-                } else {
-                    scoreDisplay.innerHTML = "❌ API 連線異常，請檢查網路或 Key。";
+            fetch(apiUrl, {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-            };
-            xhr.onerror = function() {
-                scoreDisplay.innerHTML = "❌ 影像傳送失敗。";
-            };
-            xhr.send(formData);
+                return response.json();
+            })
+            .then(data => {
+                const preds = data.predictions || [];
+                const deduped = deduplicatePredictions(preds);
+                handlePredictions(deduped);
+            })
+            .catch(err => {
+                console.error("Roboflow API Error:", err);
+                scoreDisplay.innerHTML = "❌ API 連線異常，請檢查網路或 Key。";
+            });
         }, 'image/jpeg', 0.95);
     }
 

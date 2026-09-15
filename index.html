@@ -687,8 +687,7 @@
 <script>
     const API_KEY = "zkiChDUIdVpHwIWQPZOM";
     // 包含 Workspace 前綴以匹配 Roboflow Endpoint 格式
-    const MODEL_ID = "roy-ho/mahjong-baq4s-zhith-1"; 
-    const VERSION = 1;
+    const MODEL_ID = "roy-ho/mahjong-baq4s-zhith-1-yolo11n-t1"; 
 
     let mediaStream = null;
 
@@ -1284,7 +1283,7 @@
             const formData = new FormData();
             formData.append("file", blob, "image.jpg");
 
-            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}/${VERSION}?api_key=${API_KEY}&confidence=10&overlap=30&_t=${Date.now()}`;
+            const apiUrl = `https://detect.roboflow.com/${MODEL_ID}?api_key=${API_KEY}&confidence=10&overlap=30&_t=${Date.now()}`;
 
             fetch(apiUrl, {
                 method: "POST",
